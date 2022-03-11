@@ -41,5 +41,6 @@ Base.@kwdef mutable struct OS <:Marsh
 end
 Marshalling.fields(::Type{OS}) = (
     portused = :ports,
-    osmatch  = :matches
+    osmatch  = :matches,
+    osfingerprint = :fingerprints
 )
