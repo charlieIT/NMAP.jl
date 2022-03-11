@@ -219,23 +219,17 @@ function Marshalling.unmarshall(::Type{Scan}, scanner::Scanner)
         xmldict = xmldict,
         args    = string(scanner.cmd)
     )
-    serialize("scan.xml", JSON.parse(JSON.json(xmldict)))
+    # serialize("scan.xml", JSON.parse(JSON.json(xmldict)))
+    # open("scan.json", "w") do io
+    #     write(io, JSON.json(xmldict, 4))
+    # end
 
     iter = deepcopy(xmldict)
     for (k,v) in iter
         field = Marshalling.getfield(Scan, k)
         typemap = Dict([name=>type for (name, type) in zip(fieldnames(Scan), Scan.types)])
         if field in fieldnames(Scan)
-            if Marshalling.isleaf(k,v)
-                Base.setproperty!(this, field, v)
-            else
-                # println("-------------------")
-                # println(k)
-                # println(JSON.json(v, 2))
-                # @show Marshalling.unmarshall(typemap[field], v)
-                # println("-------------------")
-                Base.setproperty!(this, field, Marshalling.unmarshall(typemap[field], v))
-            end
+            Base.setproperty!(this, field, Marshalling.unmarshall(typemap[field], v))
         end
     end
     return this
