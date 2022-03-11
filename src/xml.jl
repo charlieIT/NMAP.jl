@@ -196,7 +196,13 @@ A script or table elemental block
 Base.@kwdef mutable struct Element <:Marsh
     key::String     = ""
     value::String   = ""
- end
+end
+function Marshalling.unmarshall(::Type{T}, value::AbstractString) where T<:Element
+    return Element(value = string(value))
+end
+function Marshalling.unmarshall(::Type{Vector{T}}, value::AbstractString) where T<:Element
+    return Vector{T}([Element(value = string(value))])
+end
 
 """
     Table
@@ -206,10 +212,14 @@ Set of Elements and subtables related to a script's execution
 All fields can be empty
 """
 Base.@kwdef mutable struct Table <:Marsh
-   key::String
-   tables::Vector{Table}    = Vector{Table}()
-   elements::Vector{Element}= Vector{Element}()
+   key::String               = ""
+   tables::Vector{Table}     = Vector{Table}()
+   elements::Vector{Element} = Vector{Element}()
 end
+Marshalling.fields(::Type{Table}) = (
+    elem    = :elements,
+    table   = :tables
+)
 
 """
     Script
@@ -220,6 +230,10 @@ Base.@kwdef mutable struct Script <:Marsh
     elements::Vector{Element}   = Vector{Element}()
     tables::Vector{Table}       = Vector{Table}()
 end
+Marshalling.fields(::Type{Script}) = (
+    table = :tables,
+    elem  = :elements
+)
 #= end NSE scripts =#
 
 """
@@ -304,13 +318,6 @@ Marshalling.fields(::Type{Port}) = (
     state  = :state,
     script = :scripts
 )
-function Marshalling.Parse(::Type{Port}, xml::XMLDict.XMLDictElement)
-    @show "Here"
-    if "port" in string.(keys(xml))
-        return xml["port"]
-    end
-    return xml
-end
 
 """
     Ports
@@ -341,6 +348,20 @@ Base.@kwdef mutable struct Debugging <: Leaf
 end
 
 """
+    Timestamp
+"""
+Base.@kwdef mutable struct Timestamp <: Leaf
+    value::Int      = 0
+    date::DateTime  = unix2datetime(value)
+end
+Timestamp(unix::Int)    = Timestamp(value = unix)
+Timestamp(unix::String) = Timestamp(parse(Int, unix))
+#Base.convert(::Type{Timestamp}, unix::Union{String, Int64}) = Timestamp(unix)
+function Marshalling.unmarshall(::Type{Timestamp}, unix::T) where T<:Union{String, Int}
+    return Timestamp(unix)
+end
+
+"""
     Target
 
 How a target was specified when passed to nmap, its status and reasoning
@@ -364,20 +385,20 @@ Representation of a scanned host
 https://nmap.org/book/nmap-dtd.html
 """
 Base.@kwdef mutable struct Host <: Marsh
-    comment::String             = ""
-    distance::Distance          = Distance()
-    endtime::String             = ""
-    ipidsequence::Sequence      = Sequence()
-    os::OS                      = OS()
-    startime::String            = ""
-    status::HostStatus          = HostStatus()
+    comment::String                 = ""
+    distance::Distance              = Distance()
+    endtime::Timestamp              = Timestamp()
+    ipidsequence::Sequence          = Sequence()
+    os::OS                          = OS()
+    starttime::Timestamp            = Timestamp()
+    status::HostStatus              = HostStatus()
 
-    tcpsequence::TCPSequence    = TCPSequence()
-    tcptssequence::Sequence     = Sequence()
+    tcpsequence::TCPSequence        = TCPSequence()
+    tcptssequence::Sequence         = Sequence()
 
-    times::Times                = Times()
-    trace::Trace                = Trace()
-    uptime::Uptime              = Uptime()
+    times::Times                    = Times()
+    trace::Trace                    = Trace()
+    uptime::Uptime                  = Uptime()
 
     addresses::Vector{Address}      = Vector{Address}()
     hostnames::Vector{Hostname}     = Vector{Hostname}()
@@ -386,7 +407,6 @@ Base.@kwdef mutable struct Host <: Marsh
     smurfs::Vector{Smurf}           = Vector{Smurf}()
 end
 Marshalling.fields(::Type{Host}) = (
-    starttime   = :startime,
     address     = :addresses,
     extraport   = :extraports,
     hostname    = :hostnames,
@@ -409,6 +429,8 @@ Base.@kwdef mutable struct Scan <:Marsh
     scanner::String          = ""
     startstr::String         = ""
     version::String          = ""
+
+    start::Timestamp        = Timestamp()
 
     verbose::Verbose         = Verbose()
     debugging::Debugging     = Debugging()
