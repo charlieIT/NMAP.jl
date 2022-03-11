@@ -3,6 +3,7 @@ NMAP library aims to provide idiomatic nmap bindings, in order to aid the creati
 """
 module NMAP
 
+    using Dates
     using EzXML
     using JSON
     using Lazy: Lazy, @forward
