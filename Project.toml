@@ -1,0 +1,18 @@
+name = "NMAP"
+uuid = "d0025774-9958-4b82-94f5-ed7fff679852"
+license = "MIT"
+authors = ["Luis Oliveira"]
+version = "0.1.0"
+
+[deps]
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+EzXML = "8f5d6c58-4d21-5cfd-889c-e3ad7ee6a615"
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+Lazy = "50d2b5c4-7a5e-59d5-8109-a42b560f39c0"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
+Serialization = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
+XMLDict = "228000da-037f-5747-90a9-8195ccbf91a5"
+
+[compat]
+JSON = "0.21"
+XMLDict = "=0.4.1"
