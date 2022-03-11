@@ -10,8 +10,18 @@ export fields, unmarshall
 abstract type Marsh end
 abstract type Leaf <: Marsh end
 
+"""
+    fields(::Type{T}) :: NamedTuple
+
+Defines assocation between xml attrs and properties of T
+"""
 fields(::Type{T}) where T = ()
 
+"""
+    getfield(::Type{T}, k)
+
+Obtain property `k` as defined under `fields(::T)`, or default to `k`
+"""
 function getfield(::Type{T}, k::Symbol) where T<:Marsh
     mappedfields = fields(T)
     return isempty(mappedfields) || !haskey(mappedfields, k) ? k : mappedfields[k]
@@ -26,42 +36,33 @@ unmarshall(::Type{I}, s::String) where I<:Int = parse(I, s)
 unmarshall(::Type{V}, s::S) where {V<:Vector, S<:AbstractString} = [string(s)]
 function unmarshall(::Type{T}, xml::XMLDict.XMLDictElement) where T<:Marsh
     this = T()
-    # @show "unmarshal", T
-    # println("####")
-    # println(JSON.json(xml, 4))
-    # println(JSON.json(Parse(T, xml)))
-    # println("####")
 
     for (k, v) in Parse(T, xml)
         field = getfield(T, k)
-        @show T, k
-        println(field, JSON.json(xml, 4))
-        # @show T,k,field
-        # @show T, field, JSON.parse(JSON.json(xml))
-
         typemap  = Dict([name=>type for (name, type) in zip(fieldnames(T), T.types)])
         proptype = typemap[field]
 
         if field in fieldnames(T)
-            if Marshalling.isleaf(k, v)
+            if isleaf(k, v)
                 if !(v isa proptype)
-                    if (check = tryparse(proptype, v)) !== nothing
-                        v = check
+                    if proptype <: Number
+                        if (check = tryparse(proptype, v)) !== nothing
+                            v = check
+                        end
                     else
                         try
-                            v = Base.convert(type, v)
-                        catch;
+                            v = unmarshall(proptype, v)
+                        catch err
+                            v = Base.convert(proptype, v)
                         end
                     end
                 end
                 Base.setproperty!(this, field, v)
             else
-                @show field, typeof(v)
-                println(proptype, " --> ", JSON.json(v, 4))
                 if isempty(v)
                     Base.setproperty!(this, field, proptype())
                 else
-                    Base.setproperty!(this, field, Marshalling.unmarshall(proptype, v))
+                    Base.setproperty!(this, field, unmarshall(proptype, v))
                 end
             end
         end
@@ -69,12 +70,9 @@ function unmarshall(::Type{T}, xml::XMLDict.XMLDictElement) where T<:Marsh
     return this
 end
 function unmarshall(::Type{Vector{T}}, xml::Vector) where T<:Marsh
-    @show "vector vector"
-    # @show "here", JSON.parse(JSON.json(xml))
     return [unmarshall(T, entry) for entry in xml]
 end
 function unmarshall(::Type{Vector{T}}, xml::XMLDict.XMLDictElement) where T<:Marsh
-    @show "vector dictElement"
     return Vector{T}([unmarshall(T, xml)])
 end
 
@@ -85,7 +83,7 @@ end
 isleaf(::Type{T}) where T<:Leaf  = true
 isleaf(::Type{T}) where T<:Marsh = T <: Leaf
 
-function Base.Dict(m::T) where T<:Marsh
+function Base.Dict(m::T; replace=false) where T<:Marsh
     out = Dict()
     for (prop, type) in zip(fieldnames(T), T.types)
         value = Base.getproperty(m, prop)
@@ -94,10 +92,16 @@ function Base.Dict(m::T) where T<:Marsh
         elseif type <: Marsh
             value = Dict(value)
         end
+        if replace
+            iter = collect(zip(keys(fields(T)), values(fields(T))))
+            if (idx = findall(x->last(x) == prop, iter)) |> !isempty
+                prop = first(first(iter[idx]))
+            end
+        end
         out[string(prop)] = value
     end
     return out
 end
-JSON.json(m::T, args...; kwargs...) where T<:Marsh = JSON.json(Dict(m), args...; kwargs...)
+JSON.json(m::T, args...; kwargs...) where T<:Marsh = JSON.json(Dict(m; replace=true), args...; kwargs...)
 
 end #end module
