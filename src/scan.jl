@@ -1,5 +1,7 @@
+const OUTPUT_VERSIONS = ["1.04"]
+
 """
-    Scan
+    Scanner
 
 Examples
 ```julia
@@ -13,224 +15,226 @@ NMAP.Scanner(
     NMAP.ports("80"),
     NMAP.targets("127.0.0.1"),
     NMAP.timingtemplate(NMAP.paranoid),
-    NMAP.osdetection(
+    NMAP.os_detection(
         NMAP.osscan_guess()
     )
 )
 
+# Mixed option definition
 NMAP.Scanner(
     NMAP.fastmode(),
     "-sV",
     NMAP.targets("127.0.0.1"),
 )
 
+# Options as strings
 NMAP.Scanner("-p1-80", "-sV", "127.0.01")
 ```
 """
-Base.@kwdef mutable struct Scanner
-    cmd::Cmd                = Cmd(``)
-    args::Vector{String}    = Vector{String}()
-    # port::Function          =
-    # host::Function
+mutable struct Scanner
+    cmd::Cmd
+    args::Vector{String}
 
-    binpath::String         = "nmap"
-    stderr                  = nothing
-    stdout                  = nothing
-    output::Vector{UInt8}   = Vector{UInt8}()
-end
+    binpath::String
+    stderr
+    stdout
 
-function Base.push!(scan::Scanner, arg)
-    if arg isa Vector
-        append!(scan.args, arg)
-    else
-        push!(scan.args, arg)
+    output::Vector{UInt8}
+    debug::Bool # When true,  will not attempt to generate Scan after completion
+    xml::Bool   # When false, will not attempt to generate Scan after completion
+
+    # create kwarg constructor to prevent some constructor and dispatch issues that appeared when using Base.@kwdef
+    function Scanner(;
+            cmd     = Cmd(``),
+            args    = Vector{String}(),
+            binpath = "nmap",
+            stderr  = Base.stderr,
+            stdout  = Base.stdout,
+            debug   = false,
+            xml     = true
+        )
+        return new(cmd, args, binpath, stderr, stdout, Vector{UInt8}(), debug, xml)
     end
 end
 
+Base.push!(scanner::Scanner,    args...) = [push!(scanner.args, arg) for arg in args]
+Base.append!(scanner::Scanner,  args::Vector{String}) = append!(scanner.args, args)
+Base.push!(scanner::Scanner,    args::Vector{String}) = append!(scanner, args)
+
+function Base.Cmd(scanner::Scanner) ::Cmd
+    return Cmd([scanner.binpath, scanner.args...])
+end
+
+"""
+    function Scanner(options....; binpath::String = "nmap", kwargs...) ::Scanner
+
+Build a Scanner from provided `options`
+
+Input `options` can be strings, functions, Option objects or a mix of both
+
+Examples
+
+```julia
+NMAP.Scanner(
+    NMAP.ports("80"),
+    NMAP.targets("127.0.0.1"),
+    NMAP.timingtemplate(NMAP.paranoid))
+
+NMAP.Scanner("-p1-80", "-sV", "127.0.01")
+
+NMAP.Scanner(
+    NMAP.fastmode(),
+    "-sV",
+    NMAP.targets("127.0.0.1"))
+```
+"""
 function Scanner(options...;
     args::Vector{String} = Vector{String}(),
     binpath::String      = "nmap",
+    stdout               = Base.stdout,
+    stderr               = Base.stderr,
+    debug::Bool          = false,
     kwargs...)
 
-    scan = Scanner(args=args, binpath=binpath)
+    this = Scanner(; args=args, binpath=binpath, stdout=stdout, stderr=stderr, debug=debug)
+
     for option in options
         if option isa Function || option isa Option
-            option(scan)
+            option(this)
         elseif option isa String
-            push!(scan.args, option)
+            push!(this.args, option)
         elseif option isa Vector
-            append!(scan.args, option)
+            append!(this.args, option)
         end
     end
+    this.cmd = Cmd(this)
 
-    # Enable XML Output
-    push!(scan.args, "-oX")
-    # Write output to stdout
-    push!(scan.args, "-")
+    return this
+end
 
-    scan.cmd = Cmd([scan.binpath, scan.args...])
+"""
+    Scan(scanner::Scanner) ::Scan
 
-    return scan
+Build a `Scan` from a `scanner` with outputs
+"""
+Scan(scanner::Scanner) = Scan(scanner.output)
+function Marshalling.unmarshall(::Type{Scan}, scanner::Scanner)
+    # use constructor to simplify API used to create a Scan from an external output
+    return Scan(scanner)
 end
 
 """
     Option
+
+Used to group scanner options
+
+An Option will apply or remove options from scanner arguments
+
+Examples
+
+```julia
+opt = Option(function(scanner::Scanner) push!(scanner.args, "-someOpt") end)
+
+opt = Option("-someOpt")
+
+opts = Option("-someOpt", "someValue", anotherValue)
+```
 """
 mutable struct Option
     fn::Function
 end
-function(option::Option)(scan::Scanner)
-    return option.fn(scan)
-end
-
-#=
-Options implementation
-=#
-function ports(ports...) :: Option
-    portlist = join(string.(collect(ports)), ",")
+function Option(option::String)
     return Option(
         function(scan::Scanner)
-            append!(scan.args, ["-p", portlist])
+            push!(scan.args, option)
+        end)
+end
+function Option(options...)
+    return Option(
+        function(scan::Scanner)
+            [push!(scan, option) for option in options]
         end
     )
 end
+"""
+    Apply `scanner` to `option`
 
-function targets(targets...) :: Option
+Invokes `option.fn(scanner)`
+"""
+function(option::Option)(scanner::Scanner)
+    return option.fn(scanner)
+end
+"""
+    Apply `option` to `scanner`
+
+Invokes `option(scanner)`
+"""
+function (scanner::Scanner)(option::Option)
+    return option(scanner)
+end
+
+Base.push!(scanner::Scanner,    option::Option)          = option(scanner)
+Base.append!(scanner::Scanner,  options::Vector{Option}) = [x(scanner) for x in options]
+Base.push!(scanner::Scanner,    options::Vector{Option}) = append!(scanner, options)
+
+"""
+    forcexml(out::String="-") :: Option
+
+Enable XML output in stdout
+"""
+function _forcexml(out::String = "-") ::Option
     return Option(
-        function(s::Scanner)
-            push!(s.args, targets...)
-        end
-    )
+        function(scanner::Scanner)
+            # Enable XML Output
+            push!(scanner.args, "-oX")
+            # Write output to output stream
+            push!(scanner.args, out)
+        end)
 end
 
-#=
-    Host Discovery
-=#
 """
-    listscan
+    run(scan::Scanner)
 
--sL: List Scan - simply list targets to scan
+Run the `scanner` synchronously and return scan results as a `Scan`
+
+WIP: To redirect formatted output to both an output stream and Base.stdout, set `interactive_output` to false
 """
-function listscan() return "-sL" end
-"""
-    pingscan
-
--sn: Ping Scan - disable port scan
-"""
-function pingscan() return "-sn" end
-"""
-    skiphostdiscovery()
-
--Pn: Treat all hosts as online -- skip host discovery
-"""
-function skiphostdiscovery() return "-Pn" end
-
-#= end Host Discovery =#
-
-#=
-    Scan Techniques
-=#
-"""
-    updscan()
-
--sU: UDP Scan
-"""
-function udpscan() return "-sU" end
-#= end Scan Techniques =#
-
-"""
-    fastmode()
-"""
-function fastmode() return "-F" end
-
-"""
-    scandelay(delay)
-"""
-function scandelay(delay) ::Option
-
-end
-
-function idlescan()
-
-end
-
-function ipprotocolscan()
-    return Option((x)->push!(x, "-sO"))
-end
-
-#= IDS evasion, spoofind =#
-function withBadSum()
-    return "--badsum"
-end
-#= end IDS =#
-
-#= OS Detection =#
-"""
-    osdetection(options...) :: Option
-
-Example
-
-```julia
-    Scan(
-        osdetection(
-            osscan_guess(),
-            osscan_limit()
-        )
-    )
-```
-"""
-function osdetection(options...) :: Option
-    @assert isempty(options) || all(x->x isa Option, options) "Provided arguments must be of type `Option`"
-    return Option(
-        function(scan::Scan)
-            push!(scan.args, "-O")
-            for option in options
-                option(scan)
+function run(scanner::Scanner; interactive_output::Bool=true, file::Union{Nothing, String}=nothing)
+    if scanner.xml
+        if !interactive_output
+            # deactive interactive output and print results to standard output stream ("-") or given `file`
+            path = isnothing(file) ? "-" : file
+        else
+            # set output format to XML and rediret xml to tmp or given file
+            if isnothing(file)
+                path, io = mktemp(tempdir(), cleanup=true)
+                close(io)
+            else
+                path = file
             end
         end
-    )
-end
-
-function osscan_guess() :: Option
-    return Option((x)->push!(x.args, "--osscan-guess"))
-end
-
-function osscan_limit() :: Option
-    return Option((x)->push!(x.args, "--osscan-limit"))
-end
-
-#= end OS Detection =#
-
-"""
-    Run(scan::Scanner)
-"""
-function Run(scanner::Scanner) :: Scan
-    raw = read(scanner.cmd, String)
-    scanner.output = Vector{UInt8}(raw)
-    return Marshalling.unmarshall(Scan, scanner)
-end
-
-using Serialization
-function Marshalling.unmarshall(::Type{Scan}, scanner::Scanner)
-    xmldict = XMLDict.parse_xml(String(scanner.output))
-
-    this = Scan(
-        rawxml  = String(scanner.output),
-        xmldict = xmldict,
-        args    = string(scanner.cmd)
-    )
-    # serialize("scan.xml", JSON.parse(JSON.json(xmldict)))
-    # open("scan.json", "w") do io
-    #     write(io, JSON.json(xmldict, 4))
-    # end
-
-    iter = deepcopy(xmldict)
-    for (k,v) in iter
-        field = Marshalling.getfield(Scan, k)
-        typemap = Dict([name=>type for (name, type) in zip(fieldnames(Scan), Scan.types)])
-        if field in fieldnames(Scan)
-            Base.setproperty!(this, field, Marshalling.unmarshall(typemap[field], v))
-        end
+        scanner(_forcexml(path))
     end
-    return this
+    # recreate Cmd in case it has been altered since initial creation
+    scanner.cmd = Cmd(scanner)
+    @info scanner.cmd
+    if scanner.debug || !scanner.xml
+        @warn "Scanning in debug mode, scan outputs will not be automatically parsed to a Scan"
+    end
+    if !interactive_output
+        io   = IOBuffer();
+        pipe = pipeline(scanner.cmd; stdout=io, stderr=devnull);
+        Base.run(pipe)
+        raw = String(take!(io))
+    else
+        raw = Base.run(pipeline(scanner.cmd, stdout=scanner.stdout, stderr=scanner.stderr), wait=true)
+    end
+    println(raw)
+    # update scanner with output
+    scanner.output = interactive_output ? read(path) : Vector{UInt8}(raw)
+    if !scanner.debug && scanner.xml
+        # build Scan
+        return Marshalling.unmarshall(Scan, scanner)
+    end
+    return raw
 end
