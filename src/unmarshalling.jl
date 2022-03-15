@@ -7,7 +7,20 @@ export Leaf, Marsh
 export Parse
 export fields, unmarshall
 
+"""
+    Marsh
+
+XML nodes that either have children or whose associated Type is comprised of other `Marsh` types
+"""
 abstract type Marsh end
+
+"""
+    Leaf
+
+A `XML node` with no children
+
+When unmarshalling, either parsed to a Type or attributes are mapped to Type properties
+"""
 abstract type Leaf <: Marsh end
 
 """
@@ -45,6 +58,7 @@ function unmarshall(::Type{T}, xml::XMLDict.XMLDictElement) where T<:Marsh
         if field in fieldnames(T)
             if isleaf(k, v)
                 if !(v isa proptype)
+                    # attempt to change `v` to the appropriate `type`
                     if proptype <: Number
                         if (check = tryparse(proptype, v)) !== nothing
                             v = check
@@ -59,9 +73,9 @@ function unmarshall(::Type{T}, xml::XMLDict.XMLDictElement) where T<:Marsh
                 end
                 Base.setproperty!(this, field, v)
             else
-                if isempty(v)
-                    Base.setproperty!(this, field, proptype())
-                else
+                if !isempty(v)
+                #     Base.setproperty!(this, field, proptype())
+                # else
                     Base.setproperty!(this, field, unmarshall(proptype, v))
                 end
             end
@@ -102,6 +116,8 @@ function Base.Dict(m::T; replace=false) where T<:Marsh
     end
     return out
 end
-JSON.json(m::T, args...; kwargs...) where T<:Marsh = JSON.json(Dict(m; replace=true), args...; kwargs...)
+function JSON.json(m::T, args...; replace=true, kwargs...) where T<:Marsh
+    return JSON.json(Dict(m; replace=replace), args...; kwargs...)
+end
 
 end #end module

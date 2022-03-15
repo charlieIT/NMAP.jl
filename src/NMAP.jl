@@ -7,15 +7,17 @@ module NMAP
     using EzXML
     using JSON
     using Lazy: Lazy, @forward
+    using Printf
     using Revise
     using XMLDict
 
-    include("marshalling.jl")
-    using .Marshalling: Marshalling, fields, Marsh, Leaf, Parse, unmarshall
+    include("unmarshalling.jl")
+    using .Marshalling: Marshalling, Marsh, Leaf, fields, unmarshall
     include("os.jl")
     include("xml.jl")
     include("scan.jl")
+    include("options.jl")
     include("timing.jl")
-#   include("methods.jl")
+    #include("methods.jl")
 
 end
