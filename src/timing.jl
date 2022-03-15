@@ -15,7 +15,8 @@ end
 
 const AllowedTimings = Union{Timing, Int}
 
-function withtimingtemplate(timing::AllowedTimings) :: Option
+function timingtemplate(timing::AllowedTimings) :: Option
+    @assert Int(timing) in Int.(instances(Timing)) "Timing template values range from 0 to 5"
     return Option(
         function(scan::Scanner)
             push!(scan.args, string("-T", Int(timing)))
