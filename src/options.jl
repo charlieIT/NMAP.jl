@@ -307,7 +307,7 @@ function tcp_scan_flags(flags...) ::Option
     return Option("--scanflags", @sprintf("%x", value))
 end
 
-function idle_scan(zombie::String, port::Int64=0)
+function idle_scan(zombie::String, port::Int64=0) ::Option
     return Option(
         function(s::Scanner)
             push!(s.args, "-sI")
@@ -352,7 +352,7 @@ Intensity should be a value between 0 (light) and 9 (try all probes).
 
 Default value is 7
 """
-function version_intensity(level::Int)
+function version_intensity(level::Int) ::Option
     @assert level >= 0 && level <= 9 "--version-intensity accepts values from 0 (light) to 9 (try all probes)"
     return Option("--version-intensity", level)
 end
@@ -360,7 +360,7 @@ version_intensity() = version_intensity(7)
 version_light()     = version_intensity(2)
 version_all()       = version_intensity(9)
 
-function version_trace()
+function version_trace() ::Option
     return Option("--version-trace")
 end
 
@@ -368,12 +368,59 @@ end
 
 #= Script scan =#
 
-function default_script()
+function default_script() ::Option
     return Option("-sC")
 end
 
-function script(scripts...)
+"""
+    script_args(args...; kwargs...) ::Option
+
+For each argument, if a value is not provided or is empty, the key is used as argument
+
+Arguments
+
+ * args     :: Union{Pair, String}
+
+Example
+```julia
+opt = NMAP.script_args("script-key.property"=>"localhost", "script.showall", user="username", pass=",{}=bar", whois="{whodb=nofollow+ripe}")
+
+scanner(opt)
+# > "--script-args=script-key.property=localhost,script.showall,user=username,pass=,{}=bar,whois={whodb=nofollow+ripe}"
+```
+"""
+function script_args(args...; kwargs...) :: Option
+    @assert all(x->x isa Pair || x isa String, args) """Provide positional arguments as Pairs or Strings: `script_args("some-script.property"=>"some value", "someKey.property"; user=foo)`"""
+
+    args_list = []
+    for pair in args
+        k,v = pair isa Pair ? pair : (pair, "")
+        push!(args_list, (k,v))
+    end
+    for pair in kwargs
+        k,v = pair
+        push!(args_list, (string(k), v))
+    end
+    scriptargs = []
+    for tuple in args_list
+        k,v = tuple
+        k = strip(k)
+        str = isnothing(v) || isempty(v) ? k : @sprintf("%s=%s", k, v)
+        push!(scriptargs, str)
+    end
+    scriptargs = join(string.(strip.(scriptargs)), ",")
+    return Option(
+        function(scanner::Scanner)
+            args = strip(scriptargs)
+            push!(scanner.args, @sprintf("--script-args=%s", args))
+        end
+    )
+end
+
+function script(scripts...) ::Option
+    @assert all(x->x isa String) """Provide script names as strings: `script("default")`"""
     list = join(string.(collect(scripts)), ",")
+
     return Option(
         function(scanner::Scanner)
             push!(scanner.args, @sprintf("--script=%s", list))

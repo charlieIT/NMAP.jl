@@ -199,7 +199,12 @@ Run the `scanner` synchronously and return scan results as a `Scan`
 
 WIP: To redirect formatted output to both an output stream and Base.stdout, set `interactive_output` to false
 """
-function run(scanner::Scanner; interactive_output::Bool=true, file::Union{Nothing, String}=nothing)
+function run(
+        scanner::Scanner;
+        interactive_output::Bool = true,
+        file::Union{Nothing, String} = nothing,
+        auto_remove::Bool = false)
+
     if scanner.xml
         if !interactive_output
             # deactive interactive output and print results to standard output stream ("-") or given `file`
@@ -229,7 +234,6 @@ function run(scanner::Scanner; interactive_output::Bool=true, file::Union{Nothin
     else
         raw = Base.run(pipeline(scanner.cmd, stdout=scanner.stdout, stderr=scanner.stderr), wait=true)
     end
-    println(raw)
     # update scanner with output
     scanner.output = interactive_output ? read(path) : Vector{UInt8}(raw)
     if !scanner.debug && scanner.xml

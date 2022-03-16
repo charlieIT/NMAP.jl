@@ -53,9 +53,9 @@ function unmarshall(::Type{T}, xml::XMLDict.XMLDictElement) where T<:Marsh
     for (k, v) in Parse(T, xml)
         field = getfield(T, k)
         typemap  = Dict([name=>type for (name, type) in zip(fieldnames(T), T.types)])
-        proptype = typemap[field]
 
         if field in fieldnames(T)
+            proptype = typemap[field]
             if isleaf(k, v)
                 if !(v isa proptype)
                     # attempt to change `v` to the appropriate `type`
@@ -74,11 +74,11 @@ function unmarshall(::Type{T}, xml::XMLDict.XMLDictElement) where T<:Marsh
                 Base.setproperty!(this, field, v)
             else
                 if !isempty(v)
-                #     Base.setproperty!(this, field, proptype())
-                # else
                     Base.setproperty!(this, field, unmarshall(proptype, v))
                 end
             end
+        else
+            return unmarshall(T, v)
         end
     end
     return this

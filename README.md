@@ -83,6 +83,10 @@ SENT (0.0728s) TCP 192.168.80.2:61637 > 45.33.32.156:443 S ttl=55 id=38043 iplen
 [...]
 </nmaprun>
 ```
+**Parse _xml_ file as a Scan**
+```julia
+scan = NMAP.Scan(read("path/to/output.xml"))
+```
 ## Options
 [Nmap options summary](https://nmap.org/book/man-briefoptions.html)
 [Nmap usage](https://svn.nmap.org/nmap/docs/nmap.usage.txt)
@@ -102,6 +106,7 @@ SENT (0.0728s) TCP 192.168.80.2:61637 > 45.33.32.156:443 S ttl=55 id=38043 iplen
  ```julia
   exclude_file(filepath::String) # --excludefile <exclude_file>: Exclude list from file
 ```
+###### WIP
   -iL <inputfilename>: Input from list of hosts/networks
 ##### HOST DISCOVERY
   
@@ -142,6 +147,7 @@ SENT (0.0728s) TCP 192.168.80.2:61637 > 45.33.32.156:443 S ttl=55 id=38043 iplen
  ```julia
   ip_ping_discovery(protocols...) # -PO[protocol list]: IP Protocol Ping
 ```
+###### WIP
   -n/-R: Never do DNS resolution/Always resolve [default: sometimes]
   --dns-servers <serv1[,serv2],...>: Specify custom DNS servers
   --system-dns: Use OS's DNS resolver
@@ -230,10 +236,13 @@ SENT (0.0728s) TCP 192.168.80.2:61637 > 45.33.32.156:443 S ttl=55 id=38043 iplen
 ```
  ```julia
   script(scripts...) # --script=<Lua scripts>: <Lua scripts> is a comma separated list of directories, script-files or script-categories
+  script_args(args...; kwargs...) # --script-args=<n1=v1,[n2=v2,...]>: provide arguments to scripts
+  #= Examples =#
+  script("default") # --script=default
+  script_args("key.property"=>value, "script.showall", user="foo")
 ```
-  
-  --script-args=<n1=v1,[n2=v2,...]>: provide arguments to scripts
-  --script-args-file=filename: provide NSE script args in a file
+###### WIP
+   --script-args-file=filename: provide NSE script args in a file
   --script-trace: Show all data sent and received
   --script-updatedb: Update the script database.
   --script-help=<Lua scripts>: Show help about scripts.

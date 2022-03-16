@@ -69,6 +69,8 @@ Available when `withReason` is used
 Base.@kwdef mutable struct Reason <:Marsh
     reason::String  = ""
     count::Int      = 0
+    proto::String   = ""
+    ports::String   = ""
 end
 
 """
@@ -186,7 +188,7 @@ end
 
 A script or table elemental block
 """
-Base.@kwdef mutable struct Element <:Marsh
+Base.@kwdef mutable struct Element <:Leaf
     key::String     = ""
     value::String   = ""
 end
@@ -223,10 +225,15 @@ Base.@kwdef mutable struct Script <:Marsh
     elements::Vector{Element}   = Vector{Element}()
     tables::Vector{Table}       = Vector{Table}()
 end
-Marshalling.fields(::Type{Script}) = (
-    table = :tables,
-    elem  = :elements
-)
+Marshalling.fields(::Type{Script}) = (table = :tables, elem  = :elements)
+# //TODO Tackle some inconsistencies
+function Marshalling.unmarshall(::Type{Vector{T}}, xml::XMLDict.XMLDictElement) where T<:Script
+    if haskey(xml, "script")
+        xml = xml["script"]
+    end
+    if !(xml isa Vector) xml = [xml] end
+    return Vector{T}([Marshalling.unmarshall(Script, script) for script in xml])
+end
 #= end NSE scripts =#
 
 """
