@@ -3,7 +3,7 @@ Base.@kwdef mutable struct PortUsed <:Leaf
     proto::String   = ""
     state::String   = ""
 end
-Marshalling.fields(::Type{PortUsed}) = (portid=:id,)
+StructTypes.names(::Type{PortUsed}) = ((:id, :portid),)
 
 Base.@kwdef mutable struct OSFingerprint <:Leaf
     fingerprint::String = ""
@@ -18,7 +18,7 @@ Base.@kwdef mutable struct OSClass <:Marsh
     vendor::String          = ""
     cpes::Vector{String}    = Vector{String}()
 end
-Marshalling.fields(::Type{OSClass}) = (cpe = :cpes, osfamily = :family, osgen = :gen)
+StructTypes.names(::Type{OSClass}) = ((:cpes, :cpe), (:family, :osfamily), (:gen, :osgen))
 
 accuracy(class::OSClass)    = class.accuracy
 family(class::OSClass)      = class.family
@@ -33,7 +33,7 @@ Base.@kwdef mutable struct OSMatch <:Marsh
     name::String                = ""
     classes::Vector{OSClass}    = Vector{OSClass}()
 end
-Marshalling.fields(::Type{OSMatch}) = (osclass = :classes,)
+StructTypes.names(::Type{OSMatch}) = ((:classes, :osclass),)
 
 accuracy(match::OSMatch)    = match.accuracy
 line(match::OSMatch)        = match.line
@@ -47,8 +47,7 @@ Base.@kwdef mutable struct OS <:Marsh
     matches::Vector{OSMatch}             = Vector{OSMatch}()
     fingerprints::Vector{OSFingerprint}  = Vector{OSFingerprint}()
 end
-Marshalling.fields(::Type{OS}) = (
-    portused = :ports,
-    osmatch  = :matches,
-    osfingerprint = :fingerprints
-)
+StructTypes.names(::Type{OS}) = (
+    (:ports,        :portused),
+    (:matches,      :osmatch),
+    (:fingerprints, :osfingerprint))

@@ -1,3 +1,4 @@
+include("os.jl")
 #=
 [NMAP XML DTD](https://nmap.org/book/nmap-dtd.html)
 =#
@@ -11,7 +12,7 @@ Base.@kwdef mutable struct ScanInfo <:Leaf
     services::String    = ""
     type::String        = ""
 end
-Marshalling.fields(::Type{ScanInfo}) = (scanflags = :flags,)
+StructTypes.names(::Type{ScanInfo}) = ((:flags, :scanflags),)
 
 Base.@kwdef mutable struct Finished <:Leaf
     time::String        = ""
@@ -29,9 +30,9 @@ Base.@kwdef mutable struct Hosts <:Leaf
 end
 
 """
-    RunStats <: Marsh
+    RunStats
 
-Part of `Scan`
+Represents the runstats of a nmap scan
 """
 Base.@kwdef mutable struct RunStats <:Leaf
     finished::Finished  = Finished()
@@ -43,8 +44,13 @@ Base.@kwdef mutable struct Times <:Leaf
     rtt::String     = ""
     to::String      = ""
 end
-Marshalling.fields(::Type{Times}) = (rttvar = :rtt,)
+StructTypes.names(::Type{Times}) = ((:rtt, :rttvar),)
 
+"""
+    Hop
+
+Represents a hop in a traceroute
+"""
 Base.@kwdef mutable struct Hop <:Leaf
     ttl::Float64        = 0.0
 	rtt::String         = ""
@@ -52,12 +58,17 @@ Base.@kwdef mutable struct Hop <:Leaf
 	host::String        = ""
 end
 
+"""
+    Trace
+
+Representes the trace element in nmap scans
+"""
 Base.@kwdef mutable struct Trace <:Marsh
     proto::String       = ""
     port::Int           = 0
     hops::Vector{Hop}   = Vector{Hop}()
 end
-Marshalling.fields(::Type{Trace}) = (hop  = :hops,)
+StructTypes.names(::Type{Trace}) = ((:hops, :hop),)
 
 """
     Reason
@@ -83,7 +94,7 @@ Base.@kwdef mutable struct ExtraPort <:Marsh
     count::Int              = 0
     reasons::Vector{Reason} = Vector{Reason}()
 end
-Marshalling.fields(::Type{ExtraPort}) = (extrareasons = :reasons,)
+StructTypes.names(::Type{ExtraPort}) = ((:reasons, :extrareasons),)
 
 """
     Hostname
@@ -98,11 +109,11 @@ name(host::Hostname) = host.name
 Base.string(hname::Hostname) = name(hname)
 
 # Tackle some inconsistency on how <hostnames> <hostname> </hostname> ... </hostnames> is provided
-function Marshalling.unmarshall(::Type{Vector{T}}, xml::XMLDict.XMLDictElement) where T<:Hostname
+function StructTypes.construct(::Type{Vector{T}}, xml::XMLDict.XMLDictElement) where T<:Hostname
     xml = Dict(xml)
     if haskey(xml, "hostname") xml = xml["hostname"] end
     if !(xml isa Vector) xml = [xml] end
-    return [Marshalling.unmarshall(T, hname) for hname in xml]
+    return [StructTypes.construct(T, hname) for hname in xml]
 end
 
 """
@@ -150,7 +161,7 @@ end
 """
     Address
 
-The ip address and type (ipv4 or ipv6)
+The ip address and type (ipv4 or ipv6) or MAC Address
 Vendor details may require nmap to be executed as a privileged user
 """
 Base.@kwdef mutable struct Address <:Leaf
@@ -192,10 +203,10 @@ Base.@kwdef mutable struct Element <:Leaf
     key::String     = ""
     value::String   = ""
 end
-function Marshalling.unmarshall(::Type{T}, value::AbstractString) where T<:Element
+function StructTypes.construct(::Type{T}, value::AbstractString) where T<:Element
     return Element(value = string(value))
 end
-function Marshalling.unmarshall(::Type{Vector{T}}, value::AbstractString) where T<:Element
+function StructTypes.construct(::Type{Vector{T}}, value::AbstractString) where T<:Element
     return Vector{T}([Element(value = string(value))])
 end
 
@@ -211,10 +222,7 @@ Base.@kwdef mutable struct Table <:Marsh
    tables::Vector{Table}     = Vector{Table}()
    elements::Vector{Element} = Vector{Element}()
 end
-Marshalling.fields(::Type{Table}) = (
-    elem    = :elements,
-    table   = :tables
-)
+StructTypes.names(::Type{Table}) = ((:elements, :elem), (:tables, :table))
 
 """
     Script
@@ -225,14 +233,14 @@ Base.@kwdef mutable struct Script <:Marsh
     elements::Vector{Element}   = Vector{Element}()
     tables::Vector{Table}       = Vector{Table}()
 end
-Marshalling.fields(::Type{Script}) = (table = :tables, elem  = :elements)
+StructTypes.names(::Type{Script}) = ((:tables, :table), (:elements, :elem))
 # //TODO Tackle some inconsistencies
-function Marshalling.unmarshall(::Type{Vector{T}}, xml::XMLDict.XMLDictElement) where T<:Script
+function StructTypes.construct(::Type{Vector{T}}, xml::XMLDict.XMLDictElement) where T<:Script
     if haskey(xml, "script")
         xml = xml["script"]
     end
     if !(xml isa Vector) xml = [xml] end
-    return Vector{T}([Marshalling.unmarshall(Script, script) for script in xml])
+    return Vector{T}([StructTypes.construct(Script, script) for script in xml])
 end
 #= end NSE scripts =#
 
@@ -284,18 +292,13 @@ Base.@kwdef mutable struct Service <:Marsh
 	confidence::Int         = 0
 	cpe::Vector{String}     = Vector{String}()
 end
-Marshalling.fields(::Type{Service}) = (conf = :confidence,)
+StructTypes.names(::Type{Service}) = ((:confidence, :conf),)
 name(service::Service) = service.name
 Base.string(service::Service) = name(service)
 
-# Base.@kwdef mutable struct Port <:Marsh
-#     id::Int64           = 0
-#     protocol::String    = ""
-#     owner::Owner        = Owner()
-#     service::Service    = Service()
-#     state::ServiceState = ServiceState()
-#     scripts:Vector      = []
-# end
+#@enum PortState open closed filtered unfilterd Symbol("open|filtered") Symbol("closed|filtered")
+
+
 """
     Port
 
@@ -315,7 +318,7 @@ mutable struct Port <: Marsh
         )
     end
 end
-Marshalling.fields(::Type{Port}) = (portid = :id, state  = :state, script = :scripts)
+StructTypes.names(::Type{Port}) = ((:id, :portid), (:state, :state), (:scripts, :script))
 id(port::Port)       = port.id
 name(port::Port)     = name(port.service)
 owner(port::Port)    = port.owner
@@ -335,7 +338,7 @@ Base.@kwdef mutable struct Ports <:Marsh
     ports::Vector{Port}             = Vector{Port}()
     extraports::Vector{ExtraPort}   = Vector{ExtraPort}()
 end
-Marshalling.fields(::Type{Ports}) = (port = :ports,)
+StructTypes.names(::Type{Ports}) = ((:ports, :port),)
 
 # Ease iteration over Ports
 function Base.iterate(ps::Ports, state=1)
@@ -351,11 +354,11 @@ end
 
 Verbosity level
 """
-Base.@kwdef mutable struct Verbose <: Leaf
+Base.@kwdef mutable struct Verbose <:Leaf
     level::Int = 0
 end
 
-Base.@kwdef mutable struct Debugging <: Leaf
+Base.@kwdef mutable struct Debugging <:Leaf
     level::Int = 0
 end
 
@@ -364,20 +367,22 @@ level(x::T) where T<:Union{Debugging, Verbose} = x.level
 """
     Timestamp
 """
-Base.@kwdef mutable struct Timestamp <: Leaf
-    value::Int      = 0
-    date::DateTime  = unix2datetime(value)
+Base.@kwdef mutable struct Timestamp <:Leaf
+    time::Int       = 0
+    date::DateTime  = unix2datetime(time)
 end
-Timestamp(unix::Int)    = Timestamp(value = unix)
+Timestamp(unix::Int)    = Timestamp(time = unix)
 Timestamp(unix::String) = Timestamp(parse(Int, unix))
 #Base.convert(::Type{Timestamp}, unix::Union{String, Int64}) = Timestamp(unix)
-function Marshalling.unmarshall(::Type{Timestamp}, unix::T) where T<:Union{String, Int}
+function StructTypes.construct(::Type{Timestamp}, unix::T) where T<:Union{String, Int}
     return Timestamp(unix)
 end
+time(ts::Timestamp) = ts.time
+date(ts::Timestamp) = ts.date
 
 Base.@kwdef mutable struct Task <:Leaf
     task::String        = ""
-    time::String        = ""
+    time::Timestamp     = Timestamp()
     extrainfo::String   = ""
 end
 
@@ -426,13 +431,13 @@ Base.@kwdef mutable struct Host <: Marsh
     ports::Vector{Ports}            = Vector{Ports}()
     smurfs::Vector{Smurf}           = Vector{Smurf}()
 end
-Marshalling.fields(::Type{Host}) = (
-    address     = :addresses,
-    extraport   = :extraports,
-    hostname    = :hostnames,
-    port        = :ports,
-    hostscript  = :hostscripts,
-    smurf       = :smurfs)
+StructTypes.names(::Type{Host}) = (
+    (:addresses,    :address),
+    (:extraports,   :extraport),
+    (:hostnames,    :hostname),
+    (:ports,        :port),
+    (:hostscripts,  :hostscript),
+    (:smurfs,       :smurf))
 
 hostnames(host::Host)   = host.hostnames
 os(host::Host)          = host.os
@@ -445,8 +450,7 @@ Nmap executed scan
 """
 Base.@kwdef mutable struct Scan <:Marsh
     #= File =#
-    rawxml::String
-    xmldict::Dict
+    xml::String
     #= end File =#
 
     args::String             = ""
@@ -459,7 +463,7 @@ Base.@kwdef mutable struct Scan <:Marsh
 
     verbose::Verbose         = Verbose()
     debugging::Debugging     = Debugging()
-    stats::RunStats          = RunStats()
+    runstats::RunStats       = RunStats()
     scaninfo::ScanInfo       = ScanInfo()
     hosts::Vector{Host}      = Vector{Host}()
     targets::Vector{Target}  = Vector{Target}()
@@ -467,39 +471,49 @@ Base.@kwdef mutable struct Scan <:Marsh
     taskbegin::Vector{Task}  = Vector{Task}()
     taskend::Vector{Task}    = Vector{Task}()
 end
-Marshalling.fields(::Type{Scan}) = (host = :hosts, runstats = :stats)
-
-function Base.getindex(r::Scan, i)
-    return Base.getindex(r.xmldict, i)
-end
+StructTypes.names(::Type{Scan}) = ((:hosts, :host), (:runstats, :runstats))
 
 """
-    Scan(xml::String) ::Scan
+    Scan(xml::XMLDict.XMLDictElement) ::Scan
 
-Build a `Scan` from an input `xml string`
+Build a `Scan` from an input `xml` document
 
 For usage simplicity, this is implemented at constructor level
 
 Examples
 ```julia
-
 #= Import external scan results =#
 scan = NMAP.Scan(read("myscan.xml"))
 ```
 """
-function Scan(xml::String) ::Scan
-    this = Scan(rawxml = xml, xmldict = XMLDict.parse_xml(xml))
-    outputversion = get(this.xmldict, :xmloutputversion, "0.0.0")
+function Scan(xml::XMLDict.XMLDictElement) ::Scan
+
+    this = Scan(xml = XMLDict.dict_xml(XMLDict.xml_dict(xml))) # ~= initial xml string
+
+    outputversion = get(xml, :xmloutputversion, "0.0.0")
     if !(outputversion in OUTPUT_VERSIONS)
         @warn "Detected potentially unsupported XML output version $(outputversion), parsing may fail or produce inaccurate results"
     end
-    for (k,v) in this.xmldict
+    for (k,v) in xml
         field = Marshalling.getfield(Scan, k)
         typemap = Dict([name=>type for (name, type) in zip(fieldnames(Scan), Scan.types)])
         if field in fieldnames(Scan)
-            Base.setproperty!(this, field, Marshalling.unmarshall(typemap[field], v))
+            Base.setproperty!(this, field, StructTypes.construct(typemap[field], v))
         end
     end
     return this
 end
+
+"""
+    Scan(xml::String)
+
+Dispatcher method to allow `scan = NMAP.Scan("<xml>....</xml>")`
+"""
+Scan(xml::String) = Scan(XMLDict.parse_xml(String(xml)))
+
+"""
+    Scan(data::Vector{UInt8})
+
+Dispatcher method to allow `scan = NMAP.Scan(read("path/to/file.xml"))`
+"""
 Scan(data::Vector{UInt8}) = Scan(String(data))
