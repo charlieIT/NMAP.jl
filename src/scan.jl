@@ -1,7 +1,7 @@
-const OUTPUT_VERSIONS = ["1.04"]
+const OUTPUT_VERSIONS = ["1.04", "1.05"]
 
 """
-    Scanner
+# Scanner
 
 Examples
 ```julia
@@ -39,7 +39,6 @@ mutable struct Scanner
     stderr
     stdout
 
-    output::Vector{UInt8}
     debug::Bool # When true,  will not attempt to generate Scan after completion
     xml::Bool   # When false, will not attempt to generate Scan after completion
 
@@ -53,11 +52,12 @@ mutable struct Scanner
             debug   = false,
             xml     = true
         )
-        return new(cmd, args, binpath, stderr, stdout, Vector{UInt8}(), debug, xml)
+        return new(cmd, args, binpath, stderr, stdout, debug, xml)
     end
 end
 
-Base.push!(scanner::Scanner,    args...) = [push!(scanner.args, arg) for arg in args]
+Base.push!(scanner::Scanner,    arg::String) = Base.push!(scanner.args, arg)
+Base.push!(scanner::Scanner,    arg)         = Base.push!(scanner.args, string(arg))
 Base.append!(scanner::Scanner,  args::Vector{String}) = append!(scanner.args, args)
 Base.push!(scanner::Scanner,    args::Vector{String}) = append!(scanner, args)
 
@@ -113,31 +113,25 @@ function Scanner(options...;
 end
 
 """
-    Scan(scanner::Scanner) ::Scan
-
-Build a `Scan` from a `scanner` with outputs
-"""
-Scan(scanner::Scanner) = Scan(scanner.output)
-function Marshalling.unmarshall(::Type{Scan}, scanner::Scanner)
-    # use constructor to simplify API used to create a Scan from an external output
-    return Scan(scanner)
-end
-
-"""
     Option
 
-Used to group scanner options
+Options are used to group scanner options.
 
-An Option will apply or remove options from scanner arguments
+An Option will apply or remove options from scanner arguments. For some options, it can/will also mutate other scanner properties.
 
-Examples
+## Examples
 
+### Defining an Option
 ```julia
 opt = Option(function(scanner::Scanner) push!(scanner.args, "-someOpt") end)
-
+```
+### Using Option
+```julia
 opt = Option("-someOpt")
 
 opts = Option("-someOpt", "someValue", anotherValue)
+
+append!(scanner, [opt, opts])
 ```
 """
 mutable struct Option
@@ -156,14 +150,16 @@ function Option(options...)
         end
     )
 end
+
 """
-    Apply `scanner` to `option`
+    Apply `option` to `scanner`
 
 Invokes `option.fn(scanner)`
 """
 function(option::Option)(scanner::Scanner)
     return option.fn(scanner)
 end
+
 """
     Apply `option` to `scanner`
 
@@ -192,22 +188,46 @@ function _forcexml(out::String = "-") ::Option
         end)
 end
 
-"""
-    run(scan::Scanner)
+# Utility Type, as JSON is a Module, not a Type
+abstract type Json end
+const Sinks = Union{Scan, Dict, Json, String}
 
-Run the `scanner` synchronously and return scan results as a `Scan`
+Marshalling.unmarshall(::Type{String}, xml::XMLDict.XMLDictElement; kwargs...) = String(XMLDict.dict_xml(xml))
+Marshalling.unmarshall(::Type{Dict},   xml::XMLDict.XMLDictElement; kwargs...) = XMLDict.xml_dict(xml)
+Marshalling.unmarshall(::Type{Json},   xml::XMLDict.XMLDictElement; kwargs...) = JSON.json(Marshalling.unmarshall(Dict, xml))
+Marshalling.unmarshall(::Type{Scan},   xml::XMLDict.XMLDictElement; kwargs...) = Scan(xml)
 
-WIP: To redirect formatted output to both an output stream and Base.stdout, set `interactive_output` to false
+Marshalling.unmarshall(::Type{String}, xml::String; kwargs...) = xml
+Marshalling.unmarshall(::Type{Dict},   xml::String; kwargs...) = Marshalling.unmarshall(Dict, XMLDict.parse_xml(xml))
+Marshalling.unmarshall(::Type{Json},   xml::String; kwargs...) = JSON.json(Marshalling.unmarshall(Dict, xml))
+Marshalling.unmarshall(::Type{Scan},   xml::String; kwargs...) = Scan(XMLDict.parse_xml(xml))
+
 """
-function run(
+    run!(scan::Scanner)
+
+run! the `scanner` synchronously and return scan results
+
+Invoking `run!` will mutate the `scanner`
+
+Default behaviour is to return a `Scan type`. This can be configured via `sink` kwarg
+
+WIP: To redirect formatted output to both an output stream and Base.stdout, set `interactive` to false
+"""
+function run!(
         scanner::Scanner;
-        interactive_output::Bool = true,
+        autoremove::Bool             = true,
+        interactive::Bool            = true,
         file::Union{Nothing, String} = nothing,
-        auto_remove::Bool = false)
+        replace::Bool                = false,
+        sink::Type{S}                = Scan) where S<:Sinks
+
+    if scanner.debug || !scanner.xml
+        @warn "Scanning in debug mode, scan outputs will not be automatically parsed to a Scan"
+    end
 
     if scanner.xml
-        if !interactive_output
-            # deactive interactive output and print results to standard output stream ("-") or given `file`
+        if !interactive
+            # deactive interactive output and write results to standard output stream ("-") or given `file`
             path = isnothing(file) ? "-" : file
         else
             # set output format to XML and rediret xml to tmp or given file
@@ -220,25 +240,26 @@ function run(
         end
         scanner(_forcexml(path))
     end
+
     # recreate Cmd in case it has been altered since initial creation
     scanner.cmd = Cmd(scanner)
     @info scanner.cmd
-    if scanner.debug || !scanner.xml
-        @warn "Scanning in debug mode, scan outputs will not be automatically parsed to a Scan"
-    end
-    if !interactive_output
+
+    if !interactive
         io   = IOBuffer();
         pipe = pipeline(scanner.cmd; stdout=io, stderr=devnull);
         Base.run(pipe)
-        raw = String(take!(io))
+        raw = String(take!(io)) # Output as String
     else
-        raw = Base.run(pipeline(scanner.cmd, stdout=scanner.stdout, stderr=scanner.stderr), wait=true)
+        raw = Base.run(pipeline(scanner.cmd, stdout=scanner.stdout, stderr=scanner.stderr), wait=true) # Process
     end
-    # update scanner with output
-    scanner.output = interactive_output ? read(path) : Vector{UInt8}(raw)
+    output = interactive ? read(path, String) : raw
     if !scanner.debug && scanner.xml
-        # build Scan
-        return Marshalling.unmarshall(Scan, scanner)
+        # build scan output as type `sink`, default is Scan
+        output = Marshalling.unmarshall(sink, output)
     end
-    return raw
+    if (scanner.xml && path != "-") && autoremove
+        @async rm(path)
+    end
+    return output
 end
