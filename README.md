@@ -5,19 +5,35 @@ Nmap provides users with a powerful and flexible set of features for probing com
  
 ## Features
 
- - Parsing of XML output
-	 - [XML](https://nmap.org/book/nmap-dtd.html) elements mapped to Julia structures
-	 - Parsing externally generated xml files
--   `nmap`'s native options 
--  Enums and helpers for nmap commands
-    - Time templates
-    - OS families
-    - Port states
--  Documentation and usage examples
-	- Options documentation aligned with nmap's documentation
-- Integration with CPE library 
+ - [ ] Parse XML output
+	 - [x] [XML](https://nmap.org/book/nmap-dtd.html) elements mapped to Julia structures
+	 - [x] Parsing externally generated xml files
+	 - [ ] Incorporate all xml elements
+- [ ]   Universe of `nmap`'s native options
+- [ ] Enums and helpers for nmap commands
+    - [x] Time templates
+    - [x] TCP flags
+    - [ ] Port states
+    - [ ] OS families
+- [ ] Documentation 
+	- [x] Usage examples and docstrings
+	- [x] Options documentation aligned with nmap's usage documentation
+	- [ ] Additional examples under `docs/examples` 
+
+### Roadmap
+- [ ] Library tests
+- [ ] Error handling
+- [ ] Integration with CPE library 
  
- ## Example
+ ## Examples
+
+### Usage 
+```julia
+using NMAP
+<? NMAP
+<? NMAP.Scanner
+<? NMAP.Scan
+```
 ```julia
 using NMAP
 
@@ -26,7 +42,7 @@ scanner = NMAP.Scanner(
 	NMAP.targets("scanme.nmap.org"),
 	NMAP.traceroute()
 )
-scan = NMAP.run(scanner)
+scan = NMAP.run!(scanner)
 
 #Display port id, state and service names
 for host in scan.hosts
@@ -40,41 +56,24 @@ end
 80: http open
 443: https closed
 =#
-
-#= 
-Using NMAP helper methods
-Acquire service names from the output
-#=
-names = NMAP.name.(NMAP.service.(NMAP.port.(scan.hosts)))
-# [["ssh", "http", "https"]]
-reduce(vcat, names)
-# ["ssh", "http", "https"]
+```
+Scanners arguments can be defined as strings, NMAP.Option or both
+```julia 
+scanner = NMAP.Scanner("127.0.0.1", "-sV", NMAP.top_ports(100))
+Cmd(scanner) # `nmap 127.0.0.1 -sV --top-ports 100`
 ```
 
 ### Control scanner output
-**Redirect interactive output to a file**
- ```julia
-  scanner = NMAP.Scanner(NMAP.targets("scanme.nmap.org"), NMAP.packet_trace(), stdout="output.txt")
-  scan = NMAP.run(scanner)
-  println(read("output.txt", String))
-```
- ```text
-Starting Nmap 7.70 ( https://nmap.org ) at 2022-03-15 19:39 UTC
-SENT (0.0728s) ICMP [192.168.80.2 > 45.33.32.156 Echo request (type=8/code=0) id=8170 seq=0] IP [ttl=44 id=4437 iplen=28 ]
-SENT (0.0728s) TCP 192.168.80.2:61637 > 45.33.32.156:443 S ttl=55 id=38043 iplen=44  seq=2695145412 win=1024 <mss 1460>
-[...]
-```
- 
+#### Redirect formatted output to a file
+Use the argument `file` when invoking `run!`
 ```julia
- NMAP.name(scan.hosts)
-# > ["scanme.nmap.org", "scanme.nmap.org"]
-```
-**Redirect formatted output to a file** 
- ```julia
-  scan = NMAP.run(scanner, file="output.xml")
-  println(read("output.xml", String))
-``` 
-```xml
+ scanner = NMAP.Scanner(NMAP.targets("scanme.nmap.org"), NMAP.packet_trace())
+ 
+ scan = NMAP.run!(scanner, file="output.xml")
+ 
+ println(read("output.xml", String))
+ ```
+ ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE nmaprun>
 <?xml-stylesheet href="file:///usr/bin/../share/nmap/nmap.xsl" type="text/xsl"?>
@@ -83,12 +82,71 @@ SENT (0.0728s) TCP 192.168.80.2:61637 > 45.33.32.156:443 S ttl=55 id=38043 iplen
 [...]
 </nmaprun>
 ```
-**Parse _xml_ file as a Scan**
+#### Redirect interactive output to an I/O
+[_Interactive output is what Nmap prints to the stdout stream, which usually appears on the terminal window you executed Nmap from [...]_](https://nmap.org/book/output-formats-interactive.html)
+
+This is essentially human readable information, not intended for automated/machine parsing and NMAP.jl will not keep it by default.
+##### Redirect interactive output to a file
+Define the `stdout` property of the `Scanner`
+ ```julia
+  scanner = NMAP.Scanner(NMAP.targets("scanme.nmap.org"), NMAP.packet_trace(), stdout="output.txt")
+  scan = NMAP.run!(scanner)
+  println(read("output.txt", String))
+```
+ ```text
+Starting Nmap 7.70 ( https://nmap.org ) at 2022-03-15 19:39 UTC
+SENT (0.0728s) ICMP [192.168.80.2 > 45.33.32.156 Echo request (type=8/code=0) id=8170 seq=0] IP [ttl=44 id=4437 iplen=28 ]
+SENT (0.0728s) TCP 192.168.80.2:61637 > 45.33.32.156:443 S ttl=55 id=38043 iplen=44  seq=2695145412 win=1024 <mss 1460>
+[...]
+```
+##### To custom I/O stream
+ ```julia
+  outbuffer = IOBuffer();
+  scanner = NMAP.Scanner(NMAP.targets("scanme.nmap.org"), NMAP.packet_trace(), stdout=outbuffer)
+  scan = NMAP.run!(scanner)
+  println(String(take!(outbuffer)))
+ ```
+
+### Parse xml file as a Scan
 ```julia
-scan = NMAP.Scan(read("path/to/output.xml"))
+ scan = NMAP.Scan(read("path/to/output.xml"))
+```
+### Obtain scan in different formats
+Use the argument `sink` when invoking `run!` to define the scan format. Default behaviour is to return a `Scan instance`
+
+#### Obtain output as `Dict` directly from execution
+ ```julia
+  #= Execute and obtain a Dict =#
+  NMAP.run!(scanner, sink=Dict) # returns Dict 
+```
+#### Obtain Dict representation of a Scan
+ ```julia
+  #= Convert existing Scan to Dict =#
+  scan = NMAP.run!(somescanner)
+  Base.Dict(scan)
+  #= Change keys to original nmap keys/element names =#
+  Base.Dict(scan, replace=true)
+```
+#### Obtain as JSON
+ ```julia
+  #= Execute and obtain a JSON string =#
+  NMAP.run!(scanner, sink=NMAP.Json) # Json, not JSON
+  #= Convert existing Scan to JSON =#
+  scan = NMAP.run!(somescanner)
+  JSON.json(scan)
+  #= Change keys to original nmap keys/element names =#
+  JSON.json(scan, replace=true)
+```
+#### Obtain raw scan (`string` representation of the xml)
+```julia
+#= Execute and obtain output as a string =#
+NMAP.run!(scanner, sink=String)
+#= Obtain xml string from a scan instance =#
+scan.xml
 ```
 ## Options
 [Nmap options summary](https://nmap.org/book/man-briefoptions.html)
+
 [Nmap usage](https://svn.nmap.org/nmap/docs/nmap.usage.txt)
 
 #### TARGET SPECIFICATION
@@ -106,8 +164,10 @@ scan = NMAP.Scan(read("path/to/output.xml"))
  ```julia
   exclude_file(filepath::String) # --excludefile <exclude_file>: Exclude list from file
 ```
-###### WIP
-  -iL <inputfilename>: Input from list of hosts/networks
+ ```julia
+  input_file(filepath::String) # -iL <inputfilename>: Input from list of hosts/networks
+```
+
 ##### HOST DISCOVERY
   
  ```julia 
@@ -149,8 +209,11 @@ scan = NMAP.Scan(read("path/to/output.xml"))
 ```
 ###### WIP
   -n/-R: Never do DNS resolution/Always resolve [default: sometimes]
+  
   --dns-servers <serv1[,serv2],...>: Specify custom DNS servers
+  
   --system-dns: Use OS's DNS resolver
+  
  ```julia
   traceroute() # --traceroute: Trace hop path to each host
 ```
@@ -243,8 +306,11 @@ scan = NMAP.Scan(read("path/to/output.xml"))
 ```
 ###### WIP
    --script-args-file=filename: provide NSE script args in a file
+   
   --script-trace: Show all data sent and received
+  
   --script-updatedb: Update the script database.
+  
   --script-help=<Lua scripts>: Show help about scripts.
   
 ##### OS DETECTION
@@ -277,28 +343,50 @@ scan = NMAP.Scan(read("path/to/output.xml"))
   Options which take `<time>` are in seconds, or append 'ms' (milliseconds),
   's' (seconds), 'm' (minutes), or 'h' (hours) to the value (e.g. 30m).
   
+  ##### Wip
 --min-hostgroup/max-hostgroup <size>: Parallel host scan group sizes
+
   --min-parallelism/max-parallelism <numprobes>: Probe parallelization
+  
   --min-rtt-timeout/max-rtt-timeout/initial-rtt-timeout <time>: Specifies
       probe round trip time.
+      
   --max-retries <tries>: Caps number of port scan probe retransmissions.
+  
   --host-timeout <time>: Give up on target after this long
+  
   --scan-delay/--max-scan-delay <time>: Adjust delay between probes
+  
   --min-rate <number>: Send packets no slower than <number> per second
+  
   --max-rate <number>: Send packets no faster than <number> per second
+  
 ##### FIREWALL/IDS EVASION AND SPOOFING
+##### Wip
   -f; --mtu <val>: fragment packets (optionally w/given MTU)
+  
   -D <decoy1,decoy2[,ME],...>: Cloak a scan with decoys
+  
   -S <IP_Address>: Spoof source address
+  
   -e <iface>: Use specified interface
+  
   -g/--source-port <portnum>: Use given port number
+  
   --proxies <url1,[url2],...>: Relay connections through HTTP/SOCKS4 proxies
+  
   --data <hex string>: Append a custom payload to sent packets
+  
   --data-string <string>: Append a custom ASCII string to sent packets
+  
   --data-length <num>: Append random data to sent packets
+  
   --ip-options <options>: Send packets with specified ip options
+  
   --ttl <val>: Set IP time-to-live field
+  
   --spoof-mac <mac address/prefix/vendor name>: Spoof your MAC address
+  
   ```julia
    badsum() # --badsum: Send packets with a bogus TCP/UDP/SCTP checksum
    ``` 
@@ -308,11 +396,11 @@ scan = NMAP.Scan(read("path/to/output.xml"))
  #= Alternatively =#
  output(::Type{<:NMAP.OutputFormat}, file::String="-")
  output(NMAP.XMLFormat) #format as XML and redirect to stdout
- output(NMAP.NormalFormat, 	  "someFile.out") #redirect to file
- output(NMAP.kIddi3Format, 	  "example.kiddie")
+ output(NMAP.NormalFormat, "someFile.out") #redirect to file
+ output(NMAP.kIddi3Format, "example.kiddie")
  output(NMAP.GreppableFormat, "output.txt")
 ```
-
+##### Wip
   -oA <basename>: Output in the three major formats at once
   -v: Increase verbosity level (use -vv or more for greater effect)
   -d: Increase debugging level (use -dd or more for greater effect)
@@ -323,18 +411,24 @@ scan = NMAP.Scan(read("path/to/output.xml"))
  ```julia
   packet_trace() # --packet-trace: Show all packets sent and received
   ```
-**Note:**  `--iflist`will place the `Scanner` in debug mode, and the `Scan` object will not be automatically generated after scan completion.
+**Note:**  `--iflist` will place the `Scanner` in debug mode, and a `Scan` object will not be automatically generated after scan completion.
  ```julia
   iflist() # --iflist: Print host interfaces and routes (for debugging)
   ```
-  --append-output: Append to rather than clobber specified output files
  ```julia
   resume(logfile::String) # --resume <filename>: Resume an aborted scan
   ```
+  ##### Wip
+  --append-output: Append to rather than clobber specified output files
+  
   --noninteractive: Disable runtime interactions via keyboard
+  
   --stylesheet <path/URL>: XSL stylesheet to transform XML output to HTML
+  
   --webxml: Reference stylesheet from Nmap.Org for more portable XML
+  
   --no-stylesheet: Prevent associating of XSL stylesheet w/XML output
+  
 ##### MISC
 ```julia
  ipv6_scanning() # -6: Enable IPv6 scanning
@@ -343,6 +437,7 @@ scan = NMAP.Scan(read("path/to/output.xml"))
  aggressive_scan() # -A: Enable OS detection, version detection, script scanning, and traceroute
   ```
   --datadir <dirname>: Specify custom Nmap data file location
+  
   --send-eth/--send-ip: Send using raw ethernet frames or IP packets
  ```julia
   privileged() # --privileged: Assume that the user is fully privileged
@@ -350,3 +445,25 @@ scan = NMAP.Scan(read("path/to/output.xml"))
  ```julia
   unprivileged() # --unprivileged: Assume the user lacks raw socket privileges
   ```
+## Scan anatomy
+```json
+{
+    "xml": 				"String",
+    
+    "args": 			"String",
+    "scanner": 			"String",
+    "startstr": 		"String",
+    "version": 			"String",
+    "xmloutputversion": "String",
+    
+    "start": 			"NMAP.Timestamp",
+    "verbose": 			"NMAP.Verbose",
+    "debugging": 		"NMAP.Debugging",
+    "stats": 			"NMAP.RunStats",
+    "scaninfo": 		"NMAP.ScanInfo",
+    "hosts": 			"Array{NMAP.Host,1}",
+    "targets": 			"Array{NMAP.Target,1}",
+    "taskbegin": 		"Array{NMAP.Task,1}",
+    "taskend": 			"Array{NMAP.Task,1}"
+}
+```
