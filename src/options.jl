@@ -68,6 +68,15 @@ function exclude_file(filepath::String) ::Option
     )
 end
 
+"""
+    input_file(filepath::String) ::Option
+
+Set the input file that define scan targets.
+"""
+function input_file(filepath::String) ::Option
+    return Option("--iL", filepath)
+end
+
 #= end Target specification =#
 
 function exclude_ports(ports...) ::Option
@@ -335,7 +344,7 @@ function sctp_cookie_echo_scan() return Option("-sZ") end
 
 Probe open ports to determine service/version info
 """
-function service_info(options...) :::Option
+function service_info(options...) ::Option
     return Option(
         function(scanner::Scanner)
             push!(scanner.args, "-sV")
@@ -354,7 +363,7 @@ Default value is 7
 """
 function version_intensity(level::Int) ::Option
     @assert level >= 0 && level <= 9 "--version-intensity accepts values from 0 (light) to 9 (try all probes)"
-    return Option("--version-intensity", level)
+    return Option("--version-intensity", string(level))
 end
 version_intensity() = version_intensity(7)
 version_light()     = version_intensity(2)
@@ -445,6 +454,7 @@ end
 #= end IDS =#
 
 #= OS Detection =#
+
 """
     os_detection(options...) :: Option
 
@@ -508,6 +518,9 @@ function output(format::String, file::String="-") ::Option
             push!(s.args, format, file)
         end
     )
+end
+function Base.in(::Type{O}, scanner::Scanner) where O<:OutputFormat
+    return string(O) in scanner.args
 end
 
 function only_open() return Option("--open") end
