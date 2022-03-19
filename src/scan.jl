@@ -1,265 +1,207 @@
-const OUTPUT_VERSIONS = ["1.04", "1.05"]
+
+#======================================================
+
+  [NMAP XML DTD](https://nmap.org/book/nmap-dtd.html)
+
+=======================================================#
 
 """
-# Scanner
+    Timestamp
+"""
+Base.@kwdef mutable struct Timestamp <:Leaf
+    time::Int       = 0
+    date::DateTime  = unix2datetime(time)
+end
+Timestamp(unix::Int)    = Timestamp(time = unix)
+Timestamp(unix::String) = Timestamp(parse(Int, unix))
+function StructTypes.construct(::Type{Timestamp}, unix::T) where T<:Union{String, Int}
+    return Timestamp(unix)
+end
+time(ts::Timestamp) = ts.time
+date(ts::Timestamp) = ts.date
+
+"""
+    Task
+
+Represents an nmap Task
+"""
+Base.@kwdef mutable struct Task <:Leaf
+    task::String        = ""
+    time::Timestamp     = Timestamp()
+    extrainfo::String   = ""
+end
+time(task::Task) = task.time
+date(task::Task) = time(task).date
+
+include("xml/script.jl")
+include("xml/os.jl")
+include("xml/port.jl")
+include("xml/ports.jl")
+include("xml/host.jl")
+
+"""
+    Verbose
+
+Verbosity level
+Wraps the verbose xml element
+"""
+Base.@kwdef mutable struct Verbose <:Leaf
+    level::Int = 0
+end
+
+"""
+    Debugging
+
+Wraps the debugging xml element
+"""
+Base.@kwdef mutable struct Debugging <:Leaf
+    level::Int = 0
+end
+level(x::T) where T<:Union{Debugging, Verbose} = x.level
+
+"""
+    ScanInfo
+
+Wraps the `scaninfo` xml element
+"""
+Base.@kwdef mutable struct ScanInfo <:Leaf
+    numservices::Int    = 0
+    protocol::String    = ""
+    flags::String       = ""
+    services::String    = ""
+    type::String        = ""
+end
+StructTypes.names(::Type{ScanInfo}) = ((:flags, :scanflags),)
+
+"""
+    Finished
+
+Wraps the `finished` xml element
+"""
+Base.@kwdef mutable struct Finished <:Leaf
+    time::String        = ""
+    timestr::String     = ""
+    elapsed::String     = ""
+    summary::String     = ""
+    exit::String        = ""
+    errormsg::String    = ""
+end
+
+"""
+    Hosts
+
+Wraps the `hosts` xml element
+"""
+Base.@kwdef mutable struct Hosts <:Leaf
+    up::Int     = 0
+    down::Int   = 0
+    total::Int  = up + down
+end
+
+"""
+    RunStats
+
+Represents the runstats of a nmap scan
+"""
+Base.@kwdef mutable struct RunStats <:Leaf
+    finished::Finished  = Finished()
+    hosts::Hosts        = Hosts()
+end
+
+"""
+    Target
+
+How a target was specified when passed to nmap, its status and reasoning
+
+Example xml
+```xml
+<target specification="domain.does.not.exist" status="skipped" reason="invalid"/>
+```
+"""
+Base.@kwdef mutable struct Target <: Marsh
+    specification::String   = ""
+    status::String          = ""
+    reason::String          = ""
+end
+
+"""
+    Scan
+
+Nmap executed scan
+"""
+Base.@kwdef mutable struct Scan <:Marsh
+    #= File =#
+    xml::String
+    #= end File =#
+
+    args::String             = ""
+    scanner::String          = ""
+    startstr::String         = ""
+    version::String          = ""
+    xmloutputversion::String = ""
+
+    start::Timestamp         = Timestamp()
+    verbose::Verbose         = Verbose()
+    debugging::Debugging     = Debugging()
+    runstats::RunStats       = RunStats()
+    scaninfo::ScanInfo       = ScanInfo()
+    hosts::Vector{Host}      = Vector{Host}()
+    targets::Vector{Target}  = Vector{Target}()
+    # Tasks
+    taskbegin::Vector{Task}  = Vector{Task}()
+    taskend::Vector{Task}    = Vector{Task}()
+end
+StructTypes.names(::Type{Scan}) = ((:hosts, :host), (:runstats, :runstats))
+
+"""
+    Scan(xmldict::XMLDict.XMLDictElement; rawxml=nothing) ::Scan
+
+Build a `Scan` from an input `xml` document
+
+For usage simplicity, this is implemented at constructor level
 
 Examples
 ```julia
-NMAP.Scanner(
-    NMAP.ports("80"),
-    NMAP.targets("127.0.0.1"),
-    NMAP.timingtemplate(NMAP.paranoid)
-)
-
-NMAP.Scanner(
-    NMAP.ports("80"),
-    NMAP.targets("127.0.0.1"),
-    NMAP.timingtemplate(NMAP.paranoid),
-    NMAP.os_detection(
-        NMAP.osscan_guess()
-    )
-)
-
-# Mixed option definition
-NMAP.Scanner(
-    NMAP.fastmode(),
-    "-sV",
-    NMAP.targets("127.0.0.1"),
-)
-
-# Options as strings
-NMAP.Scanner("-p1-80", "-sV", "127.0.01")
+#= Import external scan results =#
+scan = NMAP.Scan(read("myscan.xml"))
 ```
 """
-mutable struct Scanner
-    cmd::Cmd
-    args::Vector{String}
-
-    binpath::String
-    stderr
-    stdout
-
-    debug::Bool # When true,  will not attempt to generate Scan after completion
-    xml::Bool   # When false, will not attempt to generate Scan after completion
-
-    # create kwarg constructor to prevent some constructor and dispatch issues that appeared when using Base.@kwdef
-    function Scanner(;
-            cmd     = Cmd(``),
-            args    = Vector{String}(),
-            binpath = "nmap",
-            stderr  = Base.stderr,
-            stdout  = Base.stdout,
-            debug   = false,
-            xml     = true
-        )
-        return new(cmd, args, binpath, stderr, stdout, debug, xml)
+function Scan(xmldict::XMLDict.XMLDictElement; xml::Union{Nothing, String}=nothing) ::Scan
+    if isnothing(xml)
+        # ~= initial xml string
+        xml = XMLDict.dict_xml(XMLDict.xml_dict(xmldict))
     end
-end
+    this = Scan(xml = xml)
 
-Base.push!(scanner::Scanner,    arg::String) = Base.push!(scanner.args, arg)
-Base.push!(scanner::Scanner,    arg)         = Base.push!(scanner.args, string(arg))
-Base.append!(scanner::Scanner,  args::Vector{String}) = append!(scanner.args, args)
-Base.push!(scanner::Scanner,    args::Vector{String}) = append!(scanner, args)
-
-function Base.Cmd(scanner::Scanner) ::Cmd
-    return Cmd([scanner.binpath, scanner.args...])
-end
-
-"""
-    function Scanner(options....; binpath::String = "nmap", kwargs...) ::Scanner
-
-Build a Scanner from provided `options`
-
-Input `options` can be strings, functions, Option objects or a mix of both
-
-Examples
-
-```julia
-NMAP.Scanner(
-    NMAP.ports("80"),
-    NMAP.targets("127.0.0.1"),
-    NMAP.timingtemplate(NMAP.paranoid))
-
-NMAP.Scanner("-p1-80", "-sV", "127.0.01")
-
-NMAP.Scanner(
-    NMAP.fastmode(),
-    "-sV",
-    NMAP.targets("127.0.0.1"))
-```
-"""
-function Scanner(options...;
-    args::Vector{String} = Vector{String}(),
-    binpath::String      = "nmap",
-    stdout               = Base.stdout,
-    stderr               = Base.stderr,
-    debug::Bool          = false,
-    kwargs...)
-
-    this = Scanner(; args=args, binpath=binpath, stdout=stdout, stderr=stderr, debug=debug)
-
-    for option in options
-        if option isa Function || option isa Option
-            option(this)
-        elseif option isa String
-            push!(this.args, option)
-        elseif option isa Vector
-            append!(this.args, option)
+    outputversion = get(xmldict, :xmloutputversion, "0.0.0")
+    if !(outputversion in OUTPUT_VERSIONS)
+        @warn "Detected potentially unsupported XML output version $(outputversion), parsing may fail or produce inaccurate results"
+    end
+    for (k,v) in xmldict
+        field = Marshalling.getfield(Scan, k)
+        typemap = Dict([name=>type for (name, type) in zip(fieldnames(Scan), Scan.types)])
+        if field in fieldnames(Scan)
+            Base.setproperty!(this, field, StructTypes.construct(typemap[field], v))
         end
     end
-    this.cmd = Cmd(this)
-
     return this
 end
 
 """
-    Option
+    Scan(xml::String) ::Scan
 
-Options are used to group scanner options.
 
-An Option will apply or remove options from scanner arguments. For some options, it can/will also mutate other scanner properties.
+Build a `Scan` from an input `xml` string
 
-## Examples
-
-### Defining an Option
-```julia
-opt = Option(function(scanner::Scanner) push!(scanner.args, "-someOpt") end)
-```
-### Using Option
-```julia
-opt = Option("-someOpt")
-
-opts = Option("-someOpt", "someValue", anotherValue)
-
-append!(scanner, [opt, opts])
-```
+Dispatcher method to allow `scan = NMAP.Scan("<xml>....</xml>")` and preserve the initial `xml` string
 """
-mutable struct Option
-    fn::Function
-end
-function Option(option::String)
-    return Option(
-        function(scan::Scanner)
-            push!(scan.args, option)
-        end)
-end
-function Option(options...)
-    return Option(
-        function(scan::Scanner)
-            [push!(scan, option) for option in options]
-        end
-    )
+function Scan(xml::String) ::Scan
+    return Scan(XMLDict.parse_xml(xml), xml=xml)
 end
 
 """
-    Apply `option` to `scanner`
+    Scan(data::Vector{UInt8}) ::Scan
 
-Invokes `option.fn(scanner)`
+Dispatcher method to allow `scan = NMAP.Scan(read("path/to/file.xml"))`
 """
-function(option::Option)(scanner::Scanner)
-    return option.fn(scanner)
-end
-
-"""
-    Apply `option` to `scanner`
-
-Invokes `option(scanner)`
-"""
-function (scanner::Scanner)(option::Option)
-    return option(scanner)
-end
-
-Base.push!(scanner::Scanner,    option::Option)          = option(scanner)
-Base.append!(scanner::Scanner,  options::Vector{Option}) = [x(scanner) for x in options]
-Base.push!(scanner::Scanner,    options::Vector{Option}) = append!(scanner, options)
-
-"""
-    forcexml(out::String="-") :: Option
-
-Enable XML output in stdout
-"""
-function _forcexml(out::String = "-") ::Option
-    return Option(
-        function(scanner::Scanner)
-            # Enable XML Output
-            push!(scanner.args, "-oX")
-            # Write output to output stream
-            push!(scanner.args, out)
-        end)
-end
-
-# Utility Type, as JSON is a Module, not a Type
-abstract type Json end
-const Sinks = Union{Scan, Dict, Json, String}
-
-Marshalling.unmarshall(::Type{String}, xml::XMLDict.XMLDictElement; kwargs...) = String(XMLDict.dict_xml(xml))
-Marshalling.unmarshall(::Type{Dict},   xml::XMLDict.XMLDictElement; kwargs...) = XMLDict.xml_dict(xml)
-Marshalling.unmarshall(::Type{Json},   xml::XMLDict.XMLDictElement; kwargs...) = JSON.json(Marshalling.unmarshall(Dict, xml))
-Marshalling.unmarshall(::Type{Scan},   xml::XMLDict.XMLDictElement; kwargs...) = Scan(xml)
-
-Marshalling.unmarshall(::Type{String}, xml::String; kwargs...) = xml
-Marshalling.unmarshall(::Type{Dict},   xml::String; kwargs...) = Marshalling.unmarshall(Dict, XMLDict.parse_xml(xml))
-Marshalling.unmarshall(::Type{Json},   xml::String; kwargs...) = JSON.json(Marshalling.unmarshall(Dict, xml))
-Marshalling.unmarshall(::Type{Scan},   xml::String; kwargs...) = Scan(XMLDict.parse_xml(xml))
-
-"""
-    run!(scan::Scanner)
-
-run! the `scanner` synchronously and return scan results
-
-Invoking `run!` will mutate the `scanner`
-
-Default behaviour is to return a `Scan type`. This can be configured via `sink` kwarg
-
-WIP: To redirect formatted output to both an output stream and Base.stdout, set `interactive` to false
-"""
-function run!(
-        scanner::Scanner;
-        autoremove::Bool             = true,
-        interactive::Bool            = true,
-        file::Union{Nothing, String} = nothing,
-        replace::Bool                = false,
-        sink::Type{S}                = Scan) where S<:Sinks
-
-    if scanner.debug || !scanner.xml
-        @warn "Scanning in debug mode, scan outputs will not be automatically parsed to a Scan"
-    end
-
-    if scanner.xml
-        if !interactive
-            # deactive interactive output and write results to standard output stream ("-") or given `file`
-            path = isnothing(file) ? "-" : file
-        else
-            # set output format to XML and rediret xml to tmp or given file
-            if isnothing(file)
-                path, io = mktemp(tempdir(), cleanup=true)
-                close(io)
-            else
-                path = file
-            end
-        end
-        scanner(_forcexml(path))
-    end
-
-    # recreate Cmd in case it has been altered since initial creation
-    scanner.cmd = Cmd(scanner)
-    @info scanner.cmd
-
-    if !interactive
-        io   = IOBuffer();
-        pipe = pipeline(scanner.cmd; stdout=io, stderr=devnull);
-        Base.run(pipe)
-        raw = String(take!(io)) # Output as String
-    else
-        raw = Base.run(pipeline(scanner.cmd, stdout=scanner.stdout, stderr=scanner.stderr), wait=true) # Process
-    end
-    output = interactive ? read(path, String) : raw
-    if !scanner.debug && scanner.xml
-        # build scan output as type `sink`, default is Scan
-        output = Marshalling.unmarshall(sink, output)
-    end
-    if (scanner.xml && path != "-") && autoremove
-        @async rm(path)
-    end
-    return output
-end
+Scan(data::Vector{UInt8}) = Scan(String(data))
