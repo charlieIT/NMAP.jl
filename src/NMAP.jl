@@ -42,10 +42,9 @@ module NMAP
 
     include("unmarshalling.jl")
     using .Marshalling: Marshalling, Marsh, Leaf, unmarshall
-    include("xml.jl")
     include("scan.jl")
+    include("scanner.jl")
     include("options.jl")
-    include("timing.jl")
     #include("methods.jl")
 
 end
