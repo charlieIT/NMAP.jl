@@ -45,14 +45,14 @@ Apply some parsing logic or transformation to input `xml` as a whole prior to cr
 """
 function Parse(::Type{T}, xml) where T<:Union{Marsh, Vector{<:Marsh}} return xml end
 
-"""
-    Parse(::Type{T}, prop::Val{Symbol}, v)
+# """
+#     Parse(::Type{T}, prop::Val{Symbol}, v)
 
-Apply some transformation to value `v` of a specific `prop` of T
-"""
-function Parse(::Type{T}, prop::V, v) where {T<:Union{Marsh, Vector{<:Marsh}} , V<:Val}
-    return v
-end
+# Apply some transformation to value `v` of a specific `prop` of T
+# """
+# function Parse(::Type{T}, prop::V, v) where {T<:Union{Marsh, Vector{<:Marsh}} , V<:Val}
+#     return v
+# end
 
 StructTypes.construct(::Type{T}, v) where T<:Any = v
 StructTypes.construct(::Type{I}, s::String) where I<:Int = parse(I, s)
