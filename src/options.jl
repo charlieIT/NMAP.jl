@@ -88,13 +88,13 @@ end
 
 Faster scan that will scan fewer ports than the default scan
 """
-function fastmode() return Option("-F") end
+function fastmode()::Option return Option("-F") end
 
-function consecutive_port_scan() return Option("-r") end
+function consecutive_port_scan()::Option  return Option("-r") end
 
-function top_ports(number::Int64) return Option("--top-ports", string(number)) end
+function top_ports(number::Int64)::Option return Option("--top-ports", string(number)) end
 
-function port_ratio(ratio::Float64)
+function port_ratio(ratio::Float64) ::Option
     @assert ratio >= 1 and ratio >= 0 "port_ratio should be a value between 0 and 1"
     return Option("--port-ratio", @sprintf("%.1f", ratio))
 end
@@ -109,19 +109,19 @@ end
 
 -sL: List Scan - simply list targets to scan
 """
-function listscan() return Option("-sL") end
+function listscan()::Option return Option("-sL") end
 """
     pingscan
 
 -sn: Ping Scan - disable port scan
 """
-function pingscan() return Option("-sn") end
+function pingscan()::Option return Option("-sn") end
 """
     skip_discovery()
 
 -Pn: Treat all hosts as online -- skip host discovery
 """
-function skip_discovery() return Option("-Pn") end
+function skip_discovery()::Option return Option("-Pn") end
 
 """
     syn_discovery(ports...) :: Option
@@ -135,7 +135,7 @@ Alternatively, use `syn(ports...)`
 function syn_discovery(ports...) ::Option
     return Option(string("-PS", join(string.(collect(ports)), ",")))
 end
-syn(ports...) = syn_discovery()
+syn(ports...)::Option = syn_discovery()
 
 """
     ack_discovery(ports...)
@@ -154,9 +154,9 @@ function ack_discovery(ports...) ::Option
         end
     )
 end
-ack(ports...) = ack_discovery(ports...)
+ack(ports...)::Option = ack_discovery(ports...)
 
-function udp_discovery(ports...)
+function udp_discovery(ports...) ::Option
     return Option(
         function(s::Scanner)
             push!(s.args, "-PU")
@@ -166,7 +166,7 @@ function udp_discovery(ports...)
 end
 udp(ports...) = udp_discovery(ports...)
 
-function sctp_discovery(ports...)
+function sctp_discovery(ports...) ::Option
     return Option(
         function(s::Scanner)
             push!(s.args, "-PS")
@@ -174,7 +174,7 @@ function sctp_discovery(ports...)
         end
     )
 end
-sctp(ports...) = sctp_discovery(ports...)
+sctp(ports...)::Option = sctp_discovery(ports...)
 
 """
     discovery(modes...) ::Option
@@ -236,7 +236,7 @@ end
 
 Enable hop path tracing for each host
 """
-function traceroute() return Option("--traceroute") end
+function traceroute()::Option return Option("--traceroute") end
 
 
 #= end Host Discovery =#
@@ -245,21 +245,21 @@ function traceroute() return Option("--traceroute") end
     Scan Techniques
 =#
 
-function syn_scan() return Option("-sS") end
+function syn_scan()::Option     return Option("-sS") end
 
-function connect_scan() return Option("-sT") end
+function connect_scan()::Option return Option("-sT") end
 
-function ack_scan() return Option("-sA") end
+function ack_scan()::Option     return Option("-sA") end
 
-function window_scan() return Option("-sW") end
+function window_scan()::Option  return Option("-sW") end
 
-function maimon_scan() return Option("-sM") end
+function maimon_scan()::Option  return Option("-sM") end
 """
     updscan() ::Option
 
 Enable scan technique to use UDP packets
 """
-function udp_scan() return Option("-sU") end
+function udp_scan()::Option return Option("-sU") end
 
 """
     tcp_null_scan() ::Option
@@ -270,9 +270,9 @@ If a `RST` packet is received, port is considered closed.
 
 If no response is received, the port is considered open|filtered
 """
-function tcp_null_scan() return Option("-sN") end
+function tcp_null_scan()::Option return Option("-sN") end
 
-function tcp_fin_scan() return Option("-sF") end
+function tcp_fin_scan()::Option  return Option("-sF") end
 
 """
     xmas_scan() ::Option
@@ -283,7 +283,7 @@ If a `RST` packet is received, port is considered closed.
 
 If no response is received, the port is considered open|filtered
 """
-function xmas_scan() return Option("-sX") end
+function xmas_scan()::Option return Option("-sX") end
 
 function ip_protocol_scan() ::Option
     return Option("-sO")
@@ -330,9 +330,9 @@ function idle_scan(zombie::String, port::Int64=0) ::Option
     )
 end
 
-function sctp_init_scan() return Option("-sY") end
+function sctp_init_scan()::Option return Option("-sY") end
 
-function sctp_cookie_echo_scan() return Option("-sZ") end
+function sctp_cookie_echo_scan()::Option return Option("-sZ") end
 
 
 #= end Scan Techniques =#
@@ -365,9 +365,9 @@ function version_intensity(level::Int) ::Option
     @assert level >= 0 && level <= 9 "--version-intensity accepts values from 0 (light) to 9 (try all probes)"
     return Option("--version-intensity", string(level))
 end
-version_intensity() = version_intensity(7)
-version_light()     = version_intensity(2)
-version_all()       = version_intensity(9)
+version_intensity()::Option = version_intensity(7)
+version_light()::Option     = version_intensity(2)
+version_all()::Option       = version_intensity(9)
 
 function version_trace() ::Option
     return Option("--version-trace")
@@ -427,7 +427,7 @@ function script_args(args...; kwargs...) :: Option
 end
 
 function script(scripts...) ::Option
-    @assert all(x->x isa String) """Provide script names as strings: `script("default")`"""
+    @assert all(x->x isa String, scripts) """Provide script names as strings: `script("default")`"""
     list = join(string.(collect(scripts)), ",")
 
     return Option(
@@ -448,6 +448,50 @@ function scandelay(delay::Int) ::Option
 end
 
 #= IDS evasion, spoofind =#
+
+"""
+    decoy(decoys... String) ::Option
+
+Cloak a scan with decoys
+
+Performs a decoy scan which makes it seem to the remote host that your specified decoys
+are also scanning the target network.
+
+Argument `ME` can be used as one of the given `decoys` to represent the position of your real IP Address.
+"""
+function decoy(decoys...) ::Option
+    @assert !isempty(decoys) && all(x->x isa String, decoys) "Provide decoy addresses or ME"
+    return Option("-D", join(string.(collect(decoys)), ","))
+end
+
+"""
+    spoof_source(ip::String)
+
+Spoof the IP address of the machine running nmap with given `address`
+"""
+function spoof_source(ip::String) ::Option
+    return Option("-S", ip)
+end
+
+"""
+    spoof_mac(spoof::String)
+
+Spoof MAC Address
+Uses the given MAC address for all of the raw ethernet frames the scanner sends
+"""
+function spoof_mac(spoof::String) ::Option
+    return Option("--spoof-mac", spoof)
+end
+
+"""
+    interface(interface::String)
+
+Set network interface used for scanning
+"""
+function interface(interface::String) ::Option
+    return Option("-e", interface)
+end
+
 function badsum() ::Option
    return Option("--badsum")
 end
@@ -469,7 +513,7 @@ Example
     )
 ```
 """
-function os_detection(options...) :: Option
+function os_detection(options...) ::Option
     @assert isempty(options) || all(x->x isa Option, options) "Provided arguments must be of type `Option`"
     return Option(
         function(scan::Scanner)
@@ -480,12 +524,13 @@ function os_detection(options...) :: Option
         end
     )
 end
+function os(options...)::Option return os_detection(options...) end
 
-function osscan_guess() :: Option
+function osscan_guess() ::Option
     return Option((x)->push!(x.args, "--osscan-guess"))
 end
 
-function osscan_limit() :: Option
+function osscan_limit() ::Option
     return Option((x)->push!(x.args, "--osscan-limit"))
 end
 
@@ -504,7 +549,7 @@ Base.string(::Type{NormalFormat})       = "-oN"
 Base.string(::Type{kIddi3Format})       = "-oS"
 Base.string(::Type{GreppableFormat})    = "-oG"
 
-function output(::Type{O}, file::String="-") where O<:OutputFormat
+function output(::Type{O}, file::String="-")::Option where O<:OutputFormat
     return output(string(O), file)
 end
 function output(::Type{X}) where X<:XMLFormat
@@ -519,13 +564,13 @@ function output(format::String, file::String="-") ::Option
         end
     )
 end
-function Base.in(::Type{O}, scanner::Scanner) where O<:OutputFormat
+function Base.in(::Type{O}, scanner::Scanner)::Option where O<:OutputFormat
     return string(O) in scanner.args
 end
 
-function only_open() return Option("--open") end
-function packet_trace() return Option("--packet-trace") end
-function iflist()
+function only_open()::Option    return Option("--open") end
+function packet_trace()::Option return Option("--packet-trace") end
+function iflist() ::Option
     return Option(
         function(scanner::Scanner)
             scanner.debug = true
@@ -538,6 +583,22 @@ function resume(logfile::String) ::Option
     return Option("--resume", logfile)
 end
 
+function reason() ::Option Option("--reason") end
+
+function verbosity(level::Int=1) ::Option
+    @assert level in range(1, stop=10) "Verbosity level should be an integer between 1 and 10"
+    return Option(string("-", join(["v" for _ in 1:level])))
+end
+function verbose(level::Int=1)::Option verbosity(level)  end
+function vv()::Option verbosity(2) end
+
+function debugging(level::Int) ::Option
+    @assert level in range(1, stop=10) "Debugging level should be an integer between 1 and 10"
+    return Option(string("-", join(["d" for _ in 1:level])))
+end
+function debug(level::Int=1)::Option debugging(level)  end
+function dd()::Option debugging(2) end
+
 #= end Output options =#
 
 #= Miscellaneous options =#
@@ -548,3 +609,7 @@ function privileged()       return Option("--privileged") end
 function unprivileged()     return Option("--unprivileged") end
 
 #= end Miscellaneous options =#
+
+#= Timing templates     =#
+include("timing.jl")
+#= end Timing templates =#
