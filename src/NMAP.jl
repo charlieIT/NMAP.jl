@@ -1,5 +1,7 @@
 """
-NMAP library aims to provide idiomatic nmap bindings to aid the creation of security audit tools using Julia
+A Julia interface to [nmap](https://nmap.org/) that allows scan and output manipulation
+
+NMAP.jl aims to provide developers with idiomatic nmap bindings to aid the creation of security audit tools
 
 ## Scanner
 
@@ -9,7 +11,9 @@ NMAP library aims to provide idiomatic nmap bindings to aid the creation of secu
 
 ## Examples
 
-Create scanners
+**Create scanners**
+
+Example command: `nmap localhost 127.0.0.1 scanme.nmap.org -p 21-25,80,443,8080 -sV -O -sC --packet-trace -T0`
 ```julia
 scanner = NMAP.Scanner(
     NMAP.targets("localhost", "127.0.0.1", "scanme.nmap.org"),
@@ -21,7 +25,7 @@ scanner = NMAP.Scanner(
     NMAP.timingtemplate(NMAP.paranoid))
 ```
 
-Execute a scan
+**Execute a scan**
 ```
 scan = NMAP.run!(scanner)
 ```

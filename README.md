@@ -1,6 +1,8 @@
 # NMAP.jl
 A Julia interface to [nmap](https://nmap.org/) that allows scan and output manipulation
 
+NMAP.jl is still under active development, changes are likely to occur until the first stable release
+
 ## What is nmap 
 **Nmap**, short for *Network Mapper*, is a [free and open source](https://nmap.org/npsl/) utility for network discovery and security auditing.
 
@@ -10,12 +12,12 @@ Nmap provides users with a powerful and flexible set of features for probing com
  
 ## Features
 
- - [x] Interface for defining nmap scans
+ - [x] Interface for defining and running nmap scans
  - [ ] Parse XML output
 	 - [x] [XML](https://nmap.org/book/nmap-dtd.html) elements mapped to Julia structures
 	 - [x] Parse externally generated xml files
 	 - [ ] Incorporate all xml elements
-- [ ]   Universe of `nmap`'s native options
+- [ ] Universe of `nmap`'s native options
     - [x] String based options 
 	- [ ] Enums and helpers for nmap options or flags
 	    - [x] Time templates
@@ -28,7 +30,7 @@ Nmap provides users with a powerful and flexible set of features for probing com
 	- [ ] Additional examples (`docs/examples`)
 
 ### Roadmap
-- [ ] Library tests
+- [ ] Improve library tests
 - [ ] Error handling
 - [ ] Add package to Julia Registry
 - [ ] Integration with CPE library 
@@ -102,22 +104,22 @@ Option documentation available under `docs/examples/Options.md`
 ### Scan anatomy
 ```json
 {
-    "xml": 				"String",
+    "xml": "String",
     
-    "args": 			"String",
-    "scanner": 			"String",
-    "startstr": 		"String",
-    "version": 			"String",
+    "args": "String",
+    "scanner": "String",
+    "startstr": "String",
+    "version": "String",
     "xmloutputversion": "String",
     
-    "start": 			"NMAP.Timestamp",
-    "verbose": 			"NMAP.Verbose",
-    "debugging": 		"NMAP.Debugging",
-    "stats": 			"NMAP.RunStats",
-    "scaninfo": 		"NMAP.ScanInfo",
-    "hosts": 			"Array{NMAP.Host,1}",
-    "targets": 			"Array{NMAP.Target,1}",
-    "taskbegin": 		"Array{NMAP.Task,1}",
-    "taskend": 			"Array{NMAP.Task,1}"
+    "start": "NMAP.Timestamp",
+    "verbose": "NMAP.Verbose",
+    "debugging": "NMAP.Debugging",
+    "stats": "NMAP.RunStats",
+    "scaninfo": "NMAP.ScanInfo",
+    "hosts": "Array{NMAP.Host,1}",
+    "targets": "Array{NMAP.Target,1}",
+    "taskbegin": "Array{NMAP.Task,1}",
+    "taskend": "Array{NMAP.Task,1}"
 }
 ```
