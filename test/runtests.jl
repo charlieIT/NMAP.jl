@@ -4,6 +4,9 @@ using NMAP
 using Test
 using XMLDict
 
+const dir = joinpath(dirname(pathof(NMAP)), "..", "test")
+const resources = joinpath(dir, "resources")
+
 @testset "Bulk Options" begin
     scanner = NMAP.Scanner()
     for name in names(NMAP, all=true, imported=false)
@@ -26,7 +29,7 @@ using XMLDict
 end
 
 @testset "XML to Scan" begin
-    for (root, dir, files) in walkdir(joinpath(@__DIR__, "resources"))
+    for (root, dir, files) in walkdir(resources)
         for file in files
             input = joinpath(root, file)
             scan  = NMAP.Scan(read(input))
