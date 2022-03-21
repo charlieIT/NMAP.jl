@@ -1,4 +1,7 @@
-### Control scanner output - WIP
+### Control scanner output 
+
+Still under active development and may be subject to change and improvements in the future
+
 #### Redirect formatted output to a file
 Use the argument `file` when invoking `run!`
 ```julia
