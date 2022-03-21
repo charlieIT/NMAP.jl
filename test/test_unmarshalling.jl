@@ -4,7 +4,7 @@ using Test
 using StructTypes
 using XMLDict
 
-filepath = joinpath(@__DIR__, "resources", "example.xml")
+filepath = joinpath(resources, "example.xml")
 
 @testset "Unmarshall to sink" begin
     xml     = read(filepath)
