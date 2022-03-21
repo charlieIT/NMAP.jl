@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<?xml-stylesheet href="file:///usr/bin/../share/nmap/nmap.xsl" type="text/xsl"?>
+<!-- Nmap 7.70 scan initiated Tue Mar 15 17:35:31 2022 as: nmap -F -sV -O -&#45;osscan-guess -&#45;traceroute -vvv -oX - 192.168.80.1 192.168.80.2 192.168.80.3 -->
+<nmaprun scanner="nmap" args="nmap -F -sV -O -&#45;osscan-guess -&#45;traceroute -vvv -oX - 192.168.80.1 192.168.80.2 192.168.80.3" start="1647365731" startstr="Tue Mar 15 17:35:31 2022" version="7.70" xmloutputversion="1.04">
+<scaninfo type="syn" protocol="tcp" numservices="100" services="7,9,13,21-23,25-26,37,53,79-81,88,106,110-111,113,119,135,139,143-144,179,199,389,427,443-445,465,513-515,543-544,548,554,587,631,646,873,990,993,995,1025-1029,1110,1433,1720,1723,1755,1900,2000-2001,2049,2121,2717,3000,3128,3306,3389,3986,4899,5000,5009,5051,5060,5101,5190,5357,5432,5631,5666,5800,5900,6000-6001,6646,7070,8000,8008-8009,8080-8081,8443,8888,9100,9999-10000,32768,49152-49157"/>
+<verbose level="3"/>
+<debugging level="0"/>
+<taskbegin task="ARP Ping Scan" time="1647365731"/>
+<taskend task="ARP Ping Scan" time="1647365731" extrainfo="2 total hosts"/>
+<taskbegin task="Parallel DNS resolution of 2 hosts." time="1647365731"/>
+<taskend task="Parallel DNS resolution of 2 hosts." time="1647365731"/>
+<taskbegin task="SYN Stealth Scan" time="1647365731"/>
+<taskend task="SYN Stealth Scan" time="1647365735" extrainfo="200 total ports"/>
+<taskbegin task="Service scan" time="1647365735"/>
+<taskend task="Service scan" time="1647365747" extrainfo="6 services on 2 hosts"/>
+adjust_timeouts2: packet supposedly had rtt of -150399 microseconds.  Ignoring time.
+adjust_timeouts2: packet supposedly had rtt of -150399 microseconds.  Ignoring time.
+adjust_timeouts2: packet supposedly had rtt of -150440 microseconds.  Ignoring time.
+adjust_timeouts2: packet supposedly had rtt of -150440 microseconds.  Ignoring time.
+adjust_timeouts2: packet supposedly had rtt of -150405 microseconds.  Ignoring time.
+adjust_timeouts2: packet supposedly had rtt of -150405 microseconds.  Ignoring time.
+adjust_timeouts2: packet supposedly had rtt of -150077 microseconds.  Ignoring time.
+adjust_timeouts2: packet supposedly had rtt of -150077 microseconds.  Ignoring time.
+adjust_timeouts2: packet supposedly had rtt of -200546 microseconds.  Ignoring time.
+adjust_timeouts2: packet supposedly had rtt of -200546 microseconds.  Ignoring time.
+<taskbegin task="NSE" time="1647365761"/>
+<taskend task="NSE" time="1647365791"/>
+<taskbegin task="NSE" time="1647365791"/>
+<taskend task="NSE" time="1647365791"/>
+<host starttime="1647365731" endtime="1647365791"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.80.1" addrtype="ipv4"/>
+<address addr="02:42:C8:AE:0C:F5" addrtype="mac"/>
+<hostnames>
+</hostnames>
+<ports><extraports state="closed" count="94">
+<extrareasons reason="resets" count="94"/>
+</extraports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ssh" product="OpenSSH" version="7.6p1 Ubuntu 4ubuntu0.5" extrainfo="Ubuntu Linux; protocol 2.0" ostype="Linux" method="probed" conf="10"><cpe>cpe:/a:openbsd:openssh:7.6p1</cpe><cpe>cpe:/o:linux:linux_kernel</cpe></service></port>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="Apache httpd" version="2.4.29" extrainfo="(Ubuntu)" method="probed" conf="10"><cpe>cpe:/a:apache:http_server:2.4.29</cpe></service></port>
+<port protocol="tcp" portid="443"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="Apache httpd" version="2.4.29" hostname="rplan" tunnel="ssl" method="probed" conf="10"><cpe>cpe:/a:apache:http_server:2.4.29</cpe></service></port>
+<port protocol="tcp" portid="3389"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ms-wbt-server" servicefp="SF-Port3389-TCP:V=7.70%I=7%D=3/15%Time=6230CE6D%P=x86_64-pc-linux-gnu%r(TLSSessionReq,2F,&quot;HTTP/1\.1\x20400\x20Bad\x20Request\r\nConnection:\x20close\r\n\r\n&quot;)%r(TerminalServerCookie,2F,&quot;HTTP/1\.1\x20400\x20Bad\x20Request\r\nConnection:\x20close\r\n\r\n&quot;)%r(TerminalServer,2F,&quot;HTTP/1\.1\x20400\x20Bad\x20Request\r\nConnection:\x20close\r\n\r\n&quot;)%r(GetRequest,C9,&quot;HTTP/1\.1\x20302\x20Found\r\nLocation:\x20\./login\r\nVary:\x20Accept\r\nContent-Type:\x20text/plain;\x20charset=utf-8\r\nContent-Length:\x2029\r\nDate:\x20Tue,\x2015\x20Mar\x202022\x2017:35:46\x20GMT\r\nConnection:\x20close\r\n\r\nFound\.\x20Redirecting\x20to\x20\./login&quot;)%r(HTTPOptions,B4,&quot;HTTP/1\.1\x20200\x20OK\r\nAllow:\x20GET,\x20HEAD\r\nContent-Length:\x209\r\nContent-Type:\x20text/plain\r\nX-Content-Type-Options:\x20nosniff\r\nDate:\x20Tue,\x2015\x20Mar\x202022\x2017:35:46\x20GMT\r\nConnection:\x20close\r\n\r\nGET,\x20HEAD&quot;)%r(RTSPRequest,2F,&quot;HTTP/1\.1\x20400\x20Bad\x20Request\r\nConnection:\x20close\r\n\r\n&quot;)%r(RPCCheck,2F,&quot;HTTP/1\.1\x20400\x20Bad\x20Request\r\nConnection:\x20close\r\n\r\n&quot;)%r(DNSVersionBindReqTCP,2F,&quot;HTTP/1\.1\x20400\x20Bad\x20Request\r\nConnection:\x20close\r\n\r\n&quot;)%r(DNSStatusRequestTCP,2F,&quot;HTTP/1\.1\x20400\x20Bad\x20Request\r\nConnection:\x20close\r\n\r\n&quot;)%r(Help,2F,&quot;HTTP/1\.1\x20400\x20Bad\x20Request\r\nConnection:\x20close\r\n\r\n&quot;)%r(SSLSessionReq,2F,&quot;HTTP/1\.1\x20400\x20Bad\x20Request\r\nConnection:\x20close\r\n\r\n&quot;)%r(Kerberos,2F,&quot;HTTP/1\.1\x20400\x20Bad\x20Request\r\nConnection:\x20close\r\n\r\n&quot;)%r(SMBProgNeg,2F,&quot;HTTP/1\.1\x20400\x20Bad\x20Request\r\nConnection:\x20close\r\n\r\n&quot;)%r(X11Probe,2F,&quot;HTTP/1\.1\x20400\x20Bad\x20Request\r\nConnection:\x20close\r\n\r\n&quot;)%r(FourOhFourRequest,D4,&quot;HTTP/1\.1\x20404\x20Not\x20Found\r\nContent-Type:\x20application/json;\x20charset=utf-8\r\nContent-Length:\x2021\r\nETag:\x20W/\&quot;15-5KajTCx0AJD0xogoSeOjjV2M8K0\&quot;\r\nDate:\x20Tue,\x2015\x20Mar\x202022\x2017:35:46\x20GMT\r\nConnection:\x20close\r\n\r\n{\&quot;error\&quot;:\&quot;Not\x20Found\&quot;}&quot;)%r(LPDString,2F,&quot;HTTP/1\.1\x20400\x20Bad\x20Request\r\nConnection:\x20close\r\n\r\n&quot;)%r(LDAPSearchReq,2F,&quot;HTTP/1\.1\x20400\x20Bad\x20Request\r\nConnection:\x20close\r\n\r\n&quot;);" method="table" conf="3"/></port>
+<port protocol="tcp" portid="8000"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="nagios-nsca" product="Nagios NSCA" method="probed" conf="10"/></port>
+<port protocol="tcp" portid="10000"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="MiniServ" version="1.970" extrainfo="Webmin httpd" method="probed" conf="10"/></port>
+</ports>
+<os><portused state="open" proto="tcp" portid="22"/>
+<portused state="closed" proto="tcp" portid="7"/>
+<portused state="closed" proto="udp" portid="30630"/>
+<osmatch name="Linux 2.6.32" accuracy="96" line="55173">
+        <osclass type="general purpose" vendor="Linux" osfamily="Linux" osgen="2.6.X" accuracy="96"><cpe>cpe:/o:linux:linux_kernel:2.6.32</cpe>
+    </osclass>
+</osmatch>
+<osmatch name="Linux 3.2 - 4.9" accuracy="96" line="65105">
+<osclass type="general purpose" vendor="Linux" osfamily="Linux" osgen="3.X" accuracy="96"><cpe>cpe:/o:linux:linux_kernel:3</cpe></osclass>
+<osclass type="general purpose" vendor="Linux" osfamily="Linux" osgen="4.X" accuracy="96"><cpe>cpe:/o:linux:linux_kernel:4</cpe></osclass>
+</osmatch>
+<osmatch name="Linux 2.6.32 - 3.10" accuracy="96" line="56381">
+<osclass type="general purpose" vendor="Linux" osfamily="Linux" osgen="2.6.X" accuracy="96"><cpe>cpe:/o:linux:linux_kernel:2.6</cpe></osclass>
+<osclass type="general purpose" vendor="Linux" osfamily="Linux" osgen="3.X" accuracy="96"><cpe>cpe:/o:linux:linux_kernel:3</cpe></osclass>
+</osmatch>
+<osmatch name="Linux 3.4 - 3.10" accuracy="95" line="65366">
+<osclass type="general purpose" vendor="Linux" osfamily="Linux" osgen="3.X" accuracy="95"><cpe>cpe:/o:linux:linux_kernel:3</cpe></osclass>
+</osmatch>
+<osmatch name="Linux 3.1" accuracy="94" line="62708">
+<osclass type="general purpose" vendor="Linux" osfamily="Linux" osgen="3.X" accuracy="94"><cpe>cpe:/o:linux:linux_kernel:3.1</cpe></osclass>
+</osmatch>
+<osmatch name="Linux 3.2" accuracy="94" line="64455">
+<osclass type="general purpose" vendor="Linux" osfamily="Linux" osgen="3.X" accuracy="94"><cpe>cpe:/o:linux:linux_kernel:3.2</cpe></osclass>
+</osmatch>
+<osmatch name="AXIS 210A or 211 Network Camera (Linux 2.6.17)" accuracy="94" line="61606">
+<osclass type="webcam" vendor="Linux" osfamily="Linux" osgen="2.6.X" accuracy="94"><cpe>cpe:/o:linux:linux_kernel:2.6.17</cpe></osclass>
+<osclass type="webcam" vendor="AXIS" osfamily="embedded" accuracy="94"><cpe>cpe:/h:axis:210a_network_camera</cpe><cpe>cpe:/h:axis:211_network_camera</cpe></osclass>
+</osmatch>
+<osmatch name="Linux 3.3" accuracy="94" line="65215">
+<osclass type="general purpose" vendor="Linux" osfamily="Linux" osgen="3.X" accuracy="94"><cpe>cpe:/o:linux:linux_kernel:3.3</cpe></osclass>
+</osmatch>
+<osmatch name="Synology DiskStation Manager 5.2-5644" accuracy="94" line="101159">
+<osclass type="storage-misc" vendor="Synology" osfamily="DiskStation Manager" osgen="5.X" accuracy="94"><cpe>cpe:/a:synology:diskstation_manager:5.2</cpe></osclass>
+</osmatch>
+<osmatch name="Netgear RAIDiator 4.2.28" accuracy="94" line="88023">
+<osclass type="storage-misc" vendor="Netgear" osfamily="RAIDiator" osgen="4.X" accuracy="94"><cpe>cpe:/o:netgear:raidiator:4.2.28</cpe></osclass>
+</osmatch>
+<osfingerprint fingerprint="OS:SCAN(V=7.70%E=4%D=3/15%OT=22%CT=7%CU=30630%PV=Y%DS=1%DC=D%G=Y%M=0242C8%T&#xa;OS:M=6230CE9F%P=x86_64-pc-linux-gnu)SEQ(SP=106%GCD=1%ISR=109%TI=Z%CI=Z%TS=A&#xa;OS:)OPS(O1=M5B4ST11NW7%O2=M5B4ST11NW7%O3=M5B4NNT11NW7%O4=M5B4ST11NW7%O5=M5B&#xa;OS:4ST11NW7%O6=M5B4ST11)WIN(W1=FE88%W2=FE88%W3=FE88%W4=FE88%W5=FE88%W6=FE88&#xa;OS:)ECN(R=Y%DF=Y%T=40%W=FAF0%O=M5B4NNSNW7%CC=Y%Q=)T1(R=Y%DF=Y%T=40%S=O%A=S+&#xa;OS:%F=AS%RD=0%Q=)T2(R=N)T3(R=N)T4(R=Y%DF=Y%T=40%W=0%S=A%A=Z%F=R%O=%RD=0%Q=)&#xa;OS:T5(R=Y%DF=Y%T=40%W=0%S=Z%A=S+%F=AR%O=%RD=0%Q=)T6(R=Y%DF=Y%T=40%W=0%S=A%A&#xa;OS:=Z%F=R%O=%RD=0%Q=)T7(R=Y%DF=Y%T=40%W=0%S=Z%A=S+%F=AR%O=%RD=0%Q=)U1(R=Y%D&#xa;OS:F=N%T=40%IPL=164%UN=0%RIPL=G%RID=G%RIPCK=G%RUCK=G%RUD=G)IE(R=Y%DFI=N%T=4&#xa;OS:0%CD=S)&#xa;"/>
+</os>
+<uptime seconds="515766" lastboot="Wed Mar  9 18:20:25 2022"/>
+<distance value="1"/>
+<tcpsequence index="262" difficulty="Good luck!" values="F19B9427,9355013A,90DC3917,BC61DD6F,A28E55A1,D9D0629"/>
+<ipidsequence class="All zeros" values="0,0,0,0,0,0"/>
+<tcptssequence class="1000HZ" values="1EBD7C10,1EBD7C74,1EBD7CD8,1EBD7D3C,1EBD7DA0,1EBD7E05"/>
+<trace>
+<hop ttl="1" ipaddr="192.168.80.1" rtt="0.05"/>
+</trace>
+<times srtt="52" rttvar="22" to="100000"/>
+</host>
+<host starttime="1647365731" endtime="1647365752"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.80.3" addrtype="ipv4"/>
+<address addr="02:42:C0:A8:50:03" addrtype="mac"/>
+<hostnames>
+<hostname name="sandbox" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="100">
+<extrareasons reason="resets" count="100"/>
+</extraports>
+</ports>
+<os><portused state="closed" proto="tcp" portid="7"/>
+<portused state="closed" proto="udp" portid="35179"/>
+<osfingerprint fingerprint="SCAN(V=7.70%E=4%D=3/15%OT=%CT=7%CU=35179%PV=Y%DS=1%DC=D%G=N%M=0242C0%TM=6230CE9F%P=x86_64-pc-linux-gnu)&#xa;SEQ(CI=Z)&#xa;T5(R=Y%DF=Y%T=40%W=0%S=Z%A=S+%F=AR%O=%RD=0%Q=)&#xa;T6(R=Y%DF=Y%T=40%W=0%S=A%A=Z%F=R%O=%RD=0%Q=)&#xa;T7(R=Y%DF=Y%T=40%W=0%S=Z%A=S+%F=AR%O=%RD=0%Q=)&#xa;U1(R=Y%DF=N%T=40%IPL=164%UN=0%RIPL=G%RID=G%RIPCK=G%RUCK=G%RUD=G)&#xa;IE(R=Y%DFI=N%T=40%CD=S)&#xa;"/>
+</os>
+<distance value="1"/>
+<trace>
+<hop ttl="1" ipaddr="192.168.80.3" rtt="0.05" host="sandbox"/>
+</trace>
+<times srtt="53" rttvar="37" to="100000"/>
+</host>
+<taskbegin task="SYN Stealth Scan" time="1647365791"/>
+<taskend task="SYN Stealth Scan" time="1647365793" extrainfo="100 total ports"/>
+<taskbegin task="Service scan" time="1647365793"/>
+<taskend task="Service scan" time="1647365799" extrainfo="2 services on 1 host"/>
+<taskbegin task="NSE" time="1647365801"/>
+<taskend task="NSE" time="1647365801"/>
+<taskbegin task="NSE" time="1647365801"/>
+<taskend task="NSE" time="1647365801"/>
+<host starttime="1647365791" endtime="1647365801"><status state="up" reason="localhost-response" reason_ttl="0"/>
+<address addr="192.168.80.2" addrtype="ipv4"/>
+<hostnames>
+<hostname name="app" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="98">
+<extrareasons reason="resets" count="98"/>
+</extraports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ssh" product="OpenSSH" version="7.9p1 Debian 10+deb10u2" extrainfo="protocol 2.0" ostype="Linux" method="probed" conf="10"><cpe>cpe:/a:openbsd:openssh:7.9p1</cpe><cpe>cpe:/o:linux:linux_kernel</cpe></service></port>
+<port protocol="tcp" portid="8888"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="Tornado httpd" version="6.1" method="probed" conf="10"><cpe>cpe:/a:tornadoweb:tornado:6.1</cpe></service></port>
+</ports>
+<os><portused state="open" proto="tcp" portid="22"/>
+<portused state="closed" proto="tcp" portid="7"/>
+<portused state="closed" proto="udp" portid="31158"/>
+<osmatch name="Linux 2.6.32" accuracy="100" line="55543">
+<osclass type="general purpose" vendor="Linux" osfamily="Linux" osgen="2.6.X" accuracy="100"><cpe>cpe:/o:linux:linux_kernel:2.6.32</cpe></osclass>
+</osmatch>
+<osfingerprint fingerprint="OS:SCAN(V=7.70%E=4%D=3/15%OT=22%CT=7%CU=31158%PV=Y%DS=0%DC=L%G=Y%TM=6230CEA&#xa;OS:9%P=x86_64-pc-linux-gnu)SEQ(SP=105%GCD=1%ISR=10C%TI=Z%CI=Z%TS=A)OPS(O1=M&#xa;OS:FFD7ST11NW7%O2=MFFD7ST11NW7%O3=MFFD7NNT11NW7%O4=MFFD7ST11NW7%O5=MFFD7ST1&#xa;OS:1NW7%O6=MFFD7ST11)WIN(W1=FFCB%W2=FFCB%W3=FFCB%W4=FFCB%W5=FFCB%W6=FFCB)EC&#xa;OS:N(R=Y%DF=Y%T=40%W=FFD7%O=MFFD7NNSNW7%CC=Y%Q=)T1(R=Y%DF=Y%T=40%S=O%A=S+%F&#xa;OS:=AS%RD=0%Q=)T2(R=N)T3(R=N)T4(R=Y%DF=Y%T=40%W=0%S=A%A=Z%F=R%O=%RD=0%Q=)T5&#xa;OS:(R=Y%DF=Y%T=40%W=0%S=Z%A=S+%F=AR%O=%RD=0%Q=)T6(R=Y%DF=Y%T=40%W=0%S=A%A=Z&#xa;OS:%F=R%O=%RD=0%Q=)T7(R=Y%DF=Y%T=40%W=0%S=Z%A=S+%F=AR%O=%RD=0%Q=)U1(R=Y%DF=&#xa;OS:N%T=40%IPL=164%UN=0%RIPL=G%RID=G%RIPCK=G%RUCK=G%RUD=G)IE(R=Y%DFI=N%T=40%&#xa;OS:CD=S)&#xa;"/>
+</os>
+<uptime seconds="3654369" lastboot="Tue Feb  1 10:30:32 2022"/>
+<distance value="0"/>
+<tcpsequence index="261" difficulty="Good luck!" values="3875621C,4FDFFF9,9962D060,732DA982,42C2324E,C85B6B83"/>
+<ipidsequence class="All zeros" values="0,0,0,0,0,0"/>
+<tcptssequence class="1000HZ" values="D9D1388C,D9D138F0,D9D13954,D9D139B8,D9D13A1C,D9D13A80"/>
+<times srtt="5" rttvar="0" to="100000"/>
+</host>
+<runstats><finished time="1647365801" timestr="Tue Mar 15 17:36:41 2022" elapsed="70.42" summary="Nmap done at Tue Mar 15 17:36:41 2022; 3 IP addresses (3 hosts up) scanned in 70.42 seconds" exit="success"/><hosts up="3" down="0" total="3"/>
+</runstats>
+</nmaprun>
