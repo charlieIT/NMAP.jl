@@ -1,4 +1,10 @@
 # NMAP.jl
+[![CI](https://github.com/charlieIT/NMAP.jl/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/charlieIT/NMAP.jl/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![XMLOutputVersion: 1.04](https://img.shields.io/badge/xmloutputversion-1.04-blue)]()
+[![XMLOutputVersion: 1.05](https://img.shields.io/badge/xmloutputversion-1.05-blue)]()
+
+
 A Julia interface to [nmap](https://nmap.org/) that allows scan and output manipulation
 
 NMAP.jl is still under active development, changes are likely to occur until the first stable release
